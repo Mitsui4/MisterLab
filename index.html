@@ -6,540 +6,604 @@
     <title>MisterApp - Gestione Calcio</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Chart.js e Plugin DataLabels -->
+    <!-- Chart.js & Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="bg-slate-100 font-sans text-slate-800 pb-12">
 
-    <!-- Header / Navbar -->
-    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
-            <!-- Account & Mister Info -->
-            <div class="flex items-center gap-3">
-                <button onclick="openAccountModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow">
-                    <i class="fa-solid fa-user-gear"></i> Account
-                </button>
-                <div class="text-xs border-l border-slate-700 pl-3">
-                    <span class="block text-slate-400 text-[10px] uppercase tracking-wider font-semibold" id="navCoachTeam">Mister & Squadra</span>
-                    <span class="font-extrabold text-emerald-400 text-sm" id="navCoachName">Mister Non Registrato</span>
-                </div>
+    <!-- SCHERMATA LOGIN / REGISTRAZIONE / RECUPERO -->
+    <div id="authScreen" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md space-y-6">
+            <div class="text-center">
+                <h1 class="text-3xl font-extrabold text-slate-900 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-futbol text-emerald-500"></i> MisterApp
+                </h1>
+                <p class="text-slate-500 text-xs mt-1" id="authSubtitle">Accedi o registrati per sincronizzare la tua squadra in Cloud</p>
             </div>
 
-            <!-- Navigazione Principale -->
-            <nav class="flex flex-wrap gap-1.5 text-xs">
-                <button onclick="showSection('home')" class="nav-btn bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1"><i class="fa-solid fa-house text-emerald-400"></i> Home</button>
-                <button onclick="showSection('rosa')" class="nav-btn bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg font-semibold transition"><i class="fa-solid fa-users mr-1"></i> Rosa</button>
-                <button onclick="showSection('partitella')" class="nav-btn bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg font-semibold transition"><i class="fa-solid fa-stopwatch mr-1"></i> Partitella</button>
-                <button onclick="showSection('gare')" class="nav-btn bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg font-semibold transition"><i class="fa-solid fa-trophy mr-1"></i> Compila referto partita</button>
-                <button onclick="showSection('stats')" class="nav-btn bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg font-semibold transition"><i class="fa-solid fa-chart-line mr-1"></i> Statistiche</button>
-            </nav>
-        </div>
-    </header>
+            <form id="authForm" onsubmit="handleAuth(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Email *</label>
+                    <input type="email" id="authEmail" required class="w-full p-2.5 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500">
+                </div>
+                <div id="passwordWrapper">
+                    <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Password *</label>
+                    <input type="password" id="authPassword" minlength="6" class="w-full p-2.5 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500">
+                </div>
 
-    <!-- MODALE ACCOUNT ALLENATORE -->
-    <div id="accountModal" class="fixed inset-0 bg-slate-900/70 z-50 flex items-center justify-center hidden p-4">
-        <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md space-y-4 relative">
-            <div class="flex justify-between items-center border-b pb-3">
-                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-id-card text-emerald-600"></i> Profilo Allenatore</h3>
-                <button onclick="closeAccountModal()" class="text-slate-400 hover:text-slate-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <form id="accountForm" class="space-y-3">
-                <div>
-                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Nome *</label>
-                    <input type="text" id="coachNome" required class="p-2 border rounded-lg text-sm w-full outline-none focus:ring-2 focus:ring-emerald-500">
+                <div class="flex flex-col gap-2 pt-2" id="authActionButtons">
+                    <div class="flex gap-2">
+                        <button type="submit" id="btnLogin" onclick="authMode='login'" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-lg text-sm transition shadow">Accedi</button>
+                        <button type="submit" id="btnRegister" onclick="authMode='register'" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-lg text-sm transition shadow">Registrati</button>
+                    </div>
+                    <div class="text-center pt-2">
+                        <button type="button" onclick="sendPasswordReset()" class="text-xs text-emerald-600 hover:underline font-semibold">Password dimenticata?</button>
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Cognome *</label>
-                    <input type="text" id="coachCognome" required class="p-2 border rounded-lg text-sm w-full outline-none focus:ring-2 focus:ring-emerald-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Nome Squadra *</label>
-                    <input type="text" id="coachTeam" placeholder="es. ASD DOGO" required class="p-2 border rounded-lg text-sm w-full outline-none focus:ring-2 focus:ring-emerald-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Stagione Sportiva *</label>
-                    <select id="coachSeason" required class="p-2 border rounded-lg text-sm w-full outline-none font-bold text-slate-700">
-                        <option value="2026/2027">2026/2027</option>
-                        <option value="2027/2028">2027/2028</option>
-                        <option value="2028/2029">2028/2029</option>
-                        <option value="2029/2030">2029/2030</option>
-                    </select>
-                </div>
-                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-lg text-sm transition shadow">+ Salva Profilo</button>
             </form>
         </div>
     </div>
 
-    <main class="max-w-7xl mx-auto px-4 mt-6">
-
-        <!-- 1. HOME -->
-        <section id="sec-home" class="space-y-6">
-            <div class="bg-gradient-to-r from-slate-900 to-emerald-900 text-white p-8 rounded-2xl shadow-lg text-center">
-                <h2 class="text-3xl font-extrabold mb-2" id="homeWelcomeTitle">Benvenuto Mister!</h2>
-                <p class="text-slate-300 max-w-2xl mx-auto">Gestisci la tua squadra a 360°: dalla rosa alle partitelle, referti di gara e analisi statistiche avanzate.</p>
+    <!-- MODALE IMPOSTA NUOVA PASSWORD (Aperto dal link dell'email) -->
+    <div id="resetPasswordModal" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md space-y-4">
+            <div class="text-center">
+                <h3 class="text-xl font-bold text-slate-900 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-key text-amber-500"></i> Nuova Password
+                </h3>
+                <p class="text-xs text-slate-500 mt-1">Inserisci la tua nuova password per accedere al tuo account</p>
             </div>
+            <form onsubmit="handleUpdatePassword(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Nuova Password *</label>
+                    <input type="password" id="newPassword" required minlength="6" class="w-full p-2.5 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500">
+                </div>
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-lg text-sm transition shadow">Aggiorna Password</button>
+            </form>
+        </div>
+    </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div onclick="showSection('rosa')" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition cursor-pointer group text-center">
-                    <div class="w-12 h-12 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl mb-4 mx-auto group-hover:scale-110 transition"><i class="fa-solid fa-users"></i></div>
-                    <h3 class="font-bold text-base mb-1 text-slate-800">1. Rosa Giocatori</h3>
-                    <p class="text-xs text-slate-500">Giocatori, ruoli e valutazioni.</p>
+    <!-- MAIN APP CONTENT (Visibile dopo il Login) -->
+    <div id="appContent" class="hidden">
+        <!-- Header / Navbar -->
+        <header class="bg-slate-900 text-white shadow-md sticky top-0 z-40">
+            <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
+                <div class="flex items-center gap-3">
+                    <button onclick="openAccountModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow">
+                        <i class="fa-solid fa-user-gear"></i> Account
+                    </button>
+                    <div class="text-xs border-l border-slate-700 pl-3">
+                        <span class="block text-slate-400 text-[10px] uppercase tracking-wider font-semibold" id="navCoachTeam">Mister & Squadra</span>
+                        <span class="font-extrabold text-emerald-400 text-sm" id="navCoachName">Mister</span>
+                    </div>
                 </div>
 
-                <div onclick="showSection('partitella')" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition cursor-pointer group text-center">
-                    <div class="w-12 h-12 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-xl mb-4 mx-auto group-hover:scale-110 transition"><i class="fa-solid fa-stopwatch"></i></div>
-                    <h3 class="font-bold text-base mb-1 text-slate-800">2. Partitella</h3>
-                    <p class="text-xs text-slate-500">Seleziona presenti e bilancia squadre.</p>
-                </div>
-
-                <div onclick="showSection('gare')" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition cursor-pointer group text-center">
-                    <div class="w-12 h-12 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center text-xl mb-4 mx-auto group-hover:scale-110 transition"><i class="fa-solid fa-trophy"></i></div>
-                    <h3 class="font-bold text-base mb-1 text-slate-800">3. Referto Partita</h3>
-                    <p class="text-xs text-slate-500">Distinta 1-20, minutaggi e marcatori.</p>
-                </div>
-
-                <div onclick="showSection('stats')" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition cursor-pointer group text-center">
-                    <div class="w-12 h-12 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-xl mb-4 mx-auto group-hover:scale-110 transition"><i class="fa-solid fa-chart-pie"></i></div>
-                    <h3 class="font-bold text-base mb-1 text-slate-800">4. Statistiche</h3>
-                    <p class="text-xs text-slate-500">Grafici Casa/Trasferta e Erba/Sintetico.</p>
-                </div>
+                <nav class="flex flex-wrap gap-1.5 text-xs items-center">
+                    <button onclick="showSection('home')" class="nav-btn bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1"><i class="fa-solid fa-house text-emerald-400"></i> Home</button>
+                    <button onclick="showSection('rosa')" class="nav-btn bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg font-semibold transition"><i class="fa-solid fa-users mr-1"></i> Rosa</button>
+                    <button onclick="showSection('partitella')" class="nav-btn bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg font-semibold transition"><i class="fa-solid fa-stopwatch mr-1"></i> Partitella</button>
+                    <button onclick="showSection('gare')" class="nav-btn bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg font-semibold transition"><i class="fa-solid fa-trophy mr-1"></i> Compila referto partita</button>
+                    <button onclick="showSection('stats')" class="nav-btn bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg font-semibold transition"><i class="fa-solid fa-chart-line mr-1"></i> Statistiche</button>
+                    <button onclick="logout()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg font-bold transition ml-2" title="Esci"><i class="fa-solid fa-right-from-bracket"></i></button>
+                </nav>
             </div>
-        </section>
+        </header>
 
-        <!-- 2. ROSA GIOCATORI -->
-        <section id="sec-rosa" class="hidden space-y-6">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                    <h2 class="text-xl font-bold mb-4 text-slate-800 flex items-center gap-2" id="formTitle">
-                        <i class="fa-solid fa-user-plus text-emerald-600"></i> Nuovo Giocatore
-                    </h2>
-                    <form id="playerForm" class="space-y-4">
-                        <input type="hidden" id="editingPlayerId" value="">
-                        <div>
-                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Dati Personali *</label>
-                            <div class="grid grid-cols-2 gap-2 mb-2">
-                                <input type="text" id="nome" placeholder="Nome *" required class="p-2 border rounded-lg text-sm w-full focus:ring-2 focus:ring-emerald-500 outline-none">
-                                <input type="text" id="cognome" placeholder="Cognome *" required class="p-2 border rounded-lg text-sm w-full focus:ring-2 focus:ring-emerald-500 outline-none">
-                            </div>
-                            <div class="grid grid-cols-2 gap-2 items-center">
-                                <div>
-                                    <input type="number" id="annoNascita" min="1950" max="2026" placeholder="Anno *" oninput="calculateAge()" required class="p-2 border rounded-lg text-sm w-full focus:ring-2 focus:ring-emerald-500 outline-none">
+        <!-- MODALE ACCOUNT -->
+        <div id="accountModal" class="fixed inset-0 bg-slate-900/70 z-50 flex items-center justify-center hidden p-4">
+            <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md space-y-4 relative">
+                <div class="flex justify-between items-center border-b pb-3">
+                    <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-id-card text-emerald-600"></i> Profilo Allenatore</h3>
+                    <button onclick="closeAccountModal()" class="text-slate-400 hover:text-slate-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <form id="accountForm" class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Nome *</label>
+                        <input type="text" id="coachNome" required class="p-2 border rounded-lg text-sm w-full outline-none focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Cognome *</label>
+                        <input type="text" id="coachCognome" required class="p-2 border rounded-lg text-sm w-full outline-none focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Nome Squadra *</label>
+                        <input type="text" id="coachTeam" placeholder="es. ASD DOGO" required class="p-2 border rounded-lg text-sm w-full outline-none focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Stagione Sportiva *</label>
+                        <select id="coachSeason" required class="p-2 border rounded-lg text-sm w-full outline-none font-bold text-slate-700">
+                            <option value="2026/2027">2026/2027</option>
+                            <option value="2027/2028">2027/2028</option>
+                            <option value="2028/2029">2028/2029</option>
+                            <option value="2029/2030">2029/2030</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-lg text-sm transition shadow">+ Salva Profilo</button>
+                </form>
+            </div>
+        </div>
+
+        <main class="max-w-7xl mx-auto px-4 mt-6">
+
+            <!-- 1. HOME -->
+            <section id="sec-home" class="space-y-6">
+                <div class="bg-gradient-to-r from-slate-900 to-emerald-900 text-white p-8 rounded-2xl shadow-lg text-center">
+                    <h2 class="text-3xl font-extrabold mb-2" id="homeWelcomeTitle">Benvenuto Mister!</h2>
+                    <p class="text-slate-300 max-w-2xl mx-auto">Gestisci la tua squadra a 360°: dalla rosa alle partitelle, referti di gara e analisi statistiche avanzate.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div onclick="showSection('rosa')" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition cursor-pointer group text-center">
+                        <div class="w-12 h-12 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl mb-4 mx-auto group-hover:scale-110 transition"><i class="fa-solid fa-users"></i></div>
+                        <h3 class="font-bold text-base mb-1 text-slate-800">1. Rosa Giocatori</h3>
+                        <p class="text-xs text-slate-500">Giocatori, ruoli e valutazioni.</p>
+                    </div>
+
+                    <div onclick="showSection('partitella')" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition cursor-pointer group text-center">
+                        <div class="w-12 h-12 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-xl mb-4 mx-auto group-hover:scale-110 transition"><i class="fa-solid fa-stopwatch"></i></div>
+                        <h3 class="font-bold text-base mb-1 text-slate-800">2. Partitella</h3>
+                        <p class="text-xs text-slate-500">Seleziona presenti e bilancia squadre.</p>
+                    </div>
+
+                    <div onclick="showSection('gare')" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition cursor-pointer group text-center">
+                        <div class="w-12 h-12 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center text-xl mb-4 mx-auto group-hover:scale-110 transition"><i class="fa-solid fa-trophy"></i></div>
+                        <h3 class="font-bold text-base mb-1 text-slate-800">3. Referto Partita</h3>
+                        <p class="text-xs text-slate-500">Distinta 1-20, minutaggi e marcatori.</p>
+                    </div>
+
+                    <div onclick="showSection('stats')" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition cursor-pointer group text-center">
+                        <div class="w-12 h-12 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-xl mb-4 mx-auto group-hover:scale-110 transition"><i class="fa-solid fa-chart-pie"></i></div>
+                        <h3 class="font-bold text-base mb-1 text-slate-800">4. Statistiche</h3>
+                        <p class="text-xs text-slate-500">Grafici Casa/Trasferta e Erba/Sintetico.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. ROSA GIOCATORI -->
+            <section id="sec-rosa" class="hidden space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <h2 class="text-xl font-bold mb-4 text-slate-800 flex items-center gap-2" id="formTitle">
+                            <i class="fa-solid fa-user-plus text-emerald-600"></i> Nuovo Giocatore
+                        </h2>
+                        <form id="playerForm" class="space-y-4">
+                            <input type="hidden" id="editingPlayerId" value="">
+                            <div>
+                                <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Dati Personali *</label>
+                                <div class="grid grid-cols-2 gap-2 mb-2">
+                                    <input type="text" id="nome" placeholder="Nome *" required class="p-2 border rounded-lg text-sm w-full focus:ring-2 focus:ring-emerald-500 outline-none">
+                                    <input type="text" id="cognome" placeholder="Cognome *" required class="p-2 border rounded-lg text-sm w-full focus:ring-2 focus:ring-emerald-500 outline-none">
                                 </div>
-                                <div>
-                                    <span class="text-xs font-bold text-slate-600">Età: <span id="etaDisplay" class="text-emerald-600 font-extrabold">-</span></span>
+                                <div class="grid grid-cols-2 gap-2 items-center">
+                                    <div>
+                                        <input type="number" id="annoNascita" min="1950" max="2026" placeholder="Anno *" oninput="calculateAge()" required class="p-2 border rounded-lg text-sm w-full focus:ring-2 focus:ring-emerald-500 outline-none">
+                                    </div>
+                                    <div>
+                                        <span class="text-xs font-bold text-slate-600">Età: <span id="etaDisplay" class="text-emerald-600 font-extrabold">-</span></span>
+                                    </div>
                                 </div>
                             </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Foto Giocatore</label>
+                                <input type="file" id="fotoInput" accept="image/*" class="text-xs w-full">
+                            </div>
+
+                            <div class="space-y-3 border-t pt-3">
+                                <div class="bg-emerald-50/60 p-3 rounded-lg border border-emerald-200">
+                                    <label class="block text-xs font-bold uppercase text-emerald-800 mb-1"><i class="fa-solid fa-star text-amber-500 mr-1"></i> Ruolo Principale *</label>
+                                    <select id="ruoloPrincipale" required class="w-full p-2 border rounded-lg text-sm bg-white font-semibold text-slate-700">
+                                        <option value="">-- Seleziona Ruolo --</option>
+                                        <option value="POR">Portiere (POR)</option>
+                                        <option value="DC">Difensore Centrale (DC)</option>
+                                        <option value="TD">Terzino Destro (TD)</option>
+                                        <option value="TS">Terzino Sinistro (TS)</option>
+                                        <option value="CC">Centrocampista (CC)</option>
+                                        <option value="ALA">Ala / Esterno (ALA)</option>
+                                        <option value="P">Punta / Attaccante (P)</option>
+                                    </select>
+                                </div>
+
+                                <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <label class="block text-xs font-bold uppercase text-slate-600">Ruoli Secondari</label>
+                                        <button type="button" onclick="addSecondaryRoleInput()" class="text-xs bg-emerald-600 text-white font-semibold px-2 py-1 rounded">+ Aggiungi</button>
+                                    </div>
+                                    <div id="secRolesContainer" class="space-y-2"></div>
+                                </div>
+                            </div>
+
+                            <div class="border-t pt-3">
+                                <label class="block text-xs font-semibold uppercase text-slate-500 mb-2">Rating Atleta (1-5)</label>
+                                <div class="grid grid-cols-2 gap-3 text-xs">
+                                    <div>Velocità: <b id="vVel">3</b><input type="range" id="vel" min="1" max="5" value="3" step="0.5" class="w-full accent-emerald-600" oninput="vVel.innerText=this.value"></div>
+                                    <div>Resistenza: <b id="vRes">3</b><input type="range" id="res" min="1" max="5" value="3" step="0.5" class="w-full accent-emerald-600" oninput="vRes.innerText=this.value"></div>
+                                    <div>Forza Fisica: <b id="vFor">3</b><input type="range" id="for" min="1" max="5" value="3" step="0.5" class="w-full accent-emerald-600" oninput="vFor.innerText=this.value"></div>
+                                    <div>Tecnica: <b id="vTec">3</b><input type="range" id="tec" min="1" max="5" value="3" step="0.5" class="w-full accent-emerald-600" oninput="vTec.innerText=this.value"></div>
+                                    <div>Tattica: <b id="vTat">3</b><input type="range" id="tat" min="1" max="5" value="3" step="0.5" class="w-full accent-emerald-600" oninput="vTat.innerText=this.value"></div>
+                                    <div>Attitudine: <b id="vAtt">3</b><input type="range" id="att" min="1" max="5" value="3" step="0.5" class="w-full accent-emerald-600" oninput="vAtt.innerText=this.value"></div>
+                                </div>
+                            </div>
+
+                            <div class="flex gap-2">
+                                <button type="submit" id="btnSubmitPlayer" class="w-full bg-emerald-600 text-white font-semibold py-2 rounded-lg text-sm">+ Salva Giocatore</button>
+                                <button type="button" id="btnCancelEdit" onclick="resetForm()" class="hidden bg-slate-300 text-slate-700 font-semibold py-2 px-3 rounded-lg text-sm">Annulla</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <h2 class="text-xl font-bold mb-4 text-slate-800 flex justify-between items-center">
+                            <span><i class="fa-solid fa-users text-blue-600"></i> Rosa Giocatori</span>
+                            <div class="flex gap-2">
+                                <span id="avgAgeBadge" class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-1 rounded">Età Media: -</span>
+                                <span id="rosaCount" class="text-xs bg-slate-100 px-2 py-1 rounded font-semibold">0 Giocatori</span>
+                            </div>
+                        </h2>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm border-collapse">
+                                <thead class="bg-slate-100 border-b text-slate-600 text-xs uppercase font-bold">
+                                    <tr>
+                                        <th class="p-3">Foto</th>
+                                        <th class="p-3">Giocatore</th>
+                                        <th class="p-3">Età</th>
+                                        <th class="p-3">Ruoli</th>
+                                        <th class="p-3">Rating</th>
+                                        <th class="p-3 text-right">Azioni</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rosaTable"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. PARTITELLA -->
+            <section id="sec-partitella" class="hidden space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                        <div class="flex justify-between items-center border-b pb-3">
+                            <div>
+                                <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-clipboard-check text-emerald-600"></i> Presenti Partitella</h2>
+                                <p class="text-xs text-slate-500">Spunta i presenti per generare le formazioni bilanciate.</p>
+                            </div>
+                            <button onclick="toggleSelectAllPartitella()" id="btnSelectAllPartitella" class="text-xs bg-slate-100 text-slate-700 font-bold px-3 py-1.5 rounded-lg border hover:bg-slate-200 transition">
+                                Deseleziona Tutti
+                            </button>
+                        </div>
+                        <div id="partitellaCategoryList" class="space-y-4 max-h-[500px] overflow-y-auto pr-1"></div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                        <div class="flex justify-between items-center border-b pb-3">
+                            <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-shuffle text-amber-500"></i> Squadre Generati</h2>
+                            <button onclick="generateTeams()" class="bg-amber-500 hover:bg-amber-600 text-white font-bold px-4 py-2 rounded-lg text-xs transition shadow">Genera Squadre Bilanciate</button>
                         </div>
 
-                        <div>
-                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Foto Giocatore</label>
-                            <input type="file" id="fotoInput" accept="image/*" class="text-xs w-full">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="bg-blue-50/50 p-4 rounded-xl border border-blue-200">
+                                <div class="flex justify-between items-center border-b border-blue-200 pb-2 mb-2">
+                                    <h3 class="font-bold text-blue-700 uppercase text-xs">Squadra Blu</h3>
+                                    <span id="ratingTeamA" class="text-[11px] bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded">0 ★</span>
+                                </div>
+                                <ul id="partitellaA" class="space-y-1.5 text-xs"></ul>
+                            </div>
+                            <div class="bg-red-50/50 p-4 rounded-xl border border-red-200">
+                                <div class="flex justify-between items-center border-b border-red-200 pb-2 mb-2">
+                                    <h3 class="font-bold text-red-700 uppercase text-xs">Squadra Rossa</h3>
+                                    <span id="ratingTeamB" class="text-[11px] bg-red-100 text-red-800 font-bold px-2 py-0.5 rounded">0 ★</span>
+                                </div>
+                                <ul id="partitellaB" class="space-y-1.5 text-xs"></ul>
+                            </div>
                         </div>
+                    </div>
+                </div>
+            </section>
 
-                        <div class="space-y-3 border-t pt-3">
-                            <div class="bg-emerald-50/60 p-3 rounded-lg border border-emerald-200">
-                                <label class="block text-xs font-bold uppercase text-emerald-800 mb-1"><i class="fa-solid fa-star text-amber-500 mr-1"></i> Ruolo Principale *</label>
-                                <select id="ruoloPrincipale" required class="w-full p-2 border rounded-lg text-sm bg-white font-semibold text-slate-700">
-                                    <option value="">-- Seleziona Ruolo --</option>
-                                    <option value="POR">Portiere (POR)</option>
-                                    <option value="DC">Difensore Centrale (DC)</option>
-                                    <option value="TD">Terzino Destro (TD)</option>
-                                    <option value="TS">Terzino Sinistro (TS)</option>
-                                    <option value="CC">Centrocampista (CC)</option>
-                                    <option value="ALA">Ala / Esterno (ALA)</option>
-                                    <option value="P">Punta / Attaccante (P)</option>
+            <!-- 4. COMPILA REFERTO PARTITA -->
+            <section id="sec-gare" class="hidden space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4 h-fit">
+                        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2" id="matchFormTitle"><i class="fa-solid fa-trophy text-amber-500"></i> Compila referto partita</h2>
+                        <form id="matchForm" class="space-y-3">
+                            <input type="hidden" id="editingMatchId" value="">
+                            <div>
+                                <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Giorno & Avversario *</label>
+                                <input type="date" id="matchDate" required class="p-2 border rounded-lg text-sm w-full mb-2">
+                                <input type="text" id="matchOpponent" placeholder="Squadra Avversaria *" required class="p-2 border rounded-lg text-sm w-full">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Competizione *</label>
+                                <select id="matchType" class="p-2 border rounded-lg text-sm w-full">
+                                    <option value="Campionato">Campionato</option>
+                                    <option value="Coppa">Coppa</option>
+                                    <option value="Amichevole">Amichevole</option>
                                 </select>
                             </div>
-
-                            <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                                <div class="flex justify-between items-center mb-2">
-                                    <label class="block text-xs font-bold uppercase text-slate-600">Ruoli Secondari</label>
-                                    <button type="button" onclick="addSecondaryRoleInput()" class="text-xs bg-emerald-600 text-white font-semibold px-2 py-1 rounded">+ Aggiungi</button>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Sede *</label>
+                                    <select id="matchVenue" class="p-2 border rounded-lg text-sm w-full">
+                                        <option value="Casa">Casa</option>
+                                        <option value="Trasferta">Trasferta</option>
+                                    </select>
                                 </div>
-                                <div id="secRolesContainer" class="space-y-2"></div>
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Terreno *</label>
+                                    <select id="matchSurface" class="p-2 border rounded-lg text-sm w-full">
+                                        <option value="Sintetico">Campo Sintetico</option>
+                                        <option value="Erba Naturale">Erba Naturale</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="border-t pt-3">
+                                <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Risultato Finale (90 Minuti)</label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <input type="number" id="goalsUs" placeholder="Gol Noi" min="0" oninput="renderGoalDetailsInputs()" class="p-2 border rounded-lg text-sm">
+                                    <input type="number" id="goalsThem" placeholder="Gol Loro" min="0" class="p-2 border rounded-lg text-sm">
+                                </div>
+                            </div>
+
+                            <div id="goalsDetailContainer" class="space-y-2 border-t pt-3 hidden">
+                                <label class="block text-xs font-bold uppercase text-slate-600">Marcatori & Assist</label>
+                                <div id="goalsListInputs" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
+                            </div>
+
+                            <div class="flex gap-2">
+                                <button type="submit" id="btnSubmitMatch" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 rounded-lg text-sm transition shadow">+ Salva Partita e Aggiorna Stats</button>
+                                <button type="button" id="btnCancelMatchEdit" onclick="resetMatchForm()" class="hidden bg-slate-300 text-slate-700 font-semibold py-2 px-3 rounded-lg text-sm">Annulla</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                        <div class="flex flex-wrap justify-between items-center border-b pb-3 gap-2">
+                            <div>
+                                <h2 class="text-xl font-bold text-slate-800">Distinta Partita (1-20)</h2>
+                                <p class="text-xs text-slate-500">1-11 Titolari | 12-20 Panchina | Gestisci sostituzioni, cartellini e minutaggio.</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <span id="startersAvgBadge" class="text-xs bg-emerald-100 border border-emerald-300 text-emerald-800 font-bold px-2.5 py-1 rounded-full">Media Titolari: 0 ★</span>
+                                <span id="benchAvgBadge" class="text-xs bg-amber-100 border border-amber-300 text-amber-800 font-bold px-2.5 py-1 rounded-full">Media Panchina: 0 ★</span>
                             </div>
                         </div>
 
-                        <div class="border-t pt-3">
-                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-2">Rating Atleta (1-5)</label>
-                            <div class="grid grid-cols-2 gap-3 text-xs">
-                                <div>Velocità: <b id="vVel">3</b><input type="range" id="vel" min="1" max="5" value="3" step="0.5" class="w-full accent-emerald-600" oninput="vVel.innerText=this.value"></div>
-                                <div>Resistenza: <b id="vRes">3</b><input type="range" id="res" min="1" max="5" value="3" step="0.5" class="w-full accent-emerald-600" oninput="vRes.innerText=this.value"></div>
-                                <div>Forza Fisica: <b id="vFor">3</b><input type="range" id="for" min="1" max="5" value="3" step="0.5" class="w-full accent-emerald-600" oninput="vFor.innerText=this.value"></div>
-                                <div>Tecnica: <b id="vTec">3</b><input type="range" id="tec" min="1" max="5" value="3" step="0.5" class="w-full accent-emerald-600" oninput="vTec.innerText=this.value"></div>
-                                <div>Tattica: <b id="vTat">3</b><input type="range" id="tat" min="1" max="5" value="3" step="0.5" class="w-full accent-emerald-600" oninput="vTat.innerText=this.value"></div>
-                                <div>Attitudine: <b id="vAtt">3</b><input type="range" id="att" min="1" max="5" value="3" step="0.5" class="w-full accent-emerald-600" oninput="vAtt.innerText=this.value"></div>
-                            </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead class="bg-slate-100 border-b font-bold text-slate-600 uppercase">
+                                    <tr>
+                                        <th class="p-2 w-8">#</th>
+                                        <th class="p-2 min-w-[180px]">Giocatore</th>
+                                        <th class="p-2 text-center">Giallo</th>
+                                        <th class="p-2 text-center">Rosso</th>
+                                        <th class="p-2">Sostituzione</th>
+                                        <th class="p-2 text-right">Min. Giocati</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="matchListTable"></tbody>
+                            </table>
                         </div>
-
-                        <div class="flex gap-2">
-                            <button type="submit" id="btnSubmitPlayer" class="w-full bg-emerald-600 text-white font-semibold py-2 rounded-lg text-sm">+ Salva Giocatore</button>
-                            <button type="button" id="btnCancelEdit" onclick="resetForm()" class="hidden bg-slate-300 text-slate-700 font-semibold py-2 px-3 rounded-lg text-sm">Annulla</button>
-                        </div>
-                    </form>
-                </div>
-
-                <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                    <h2 class="text-xl font-bold mb-4 text-slate-800 flex justify-between items-center">
-                        <span><i class="fa-solid fa-users text-blue-600"></i> Rosa Giocatori</span>
-                        <div class="flex gap-2">
-                            <span id="avgAgeBadge" class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-1 rounded">Età Media: -</span>
-                            <span id="rosaCount" class="text-xs bg-slate-100 px-2 py-1 rounded font-semibold">0 Giocatori</span>
-                        </div>
-                    </h2>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm border-collapse">
-                            <thead class="bg-slate-100 border-b text-slate-600 text-xs uppercase font-bold">
-                                <tr>
-                                    <th class="p-3">Foto</th>
-                                    <th class="p-3">Giocatore</th>
-                                    <th class="p-3">Età</th>
-                                    <th class="p-3">Ruoli</th>
-                                    <th class="p-3">Rating</th>
-                                    <th class="p-3 text-right">Azioni</th>
-                                </tr>
-                            </thead>
-                            <tbody id="rosaTable"></tbody>
-                        </table>
                     </div>
                 </div>
-            </div>
-        </section>
+            </section>
 
-        <!-- 3. PARTITELLA -->
-        <section id="sec-partitella" class="hidden space-y-6">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <!-- Selezione Presenti per Categoria -->
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
-                    <div class="flex justify-between items-center border-b pb-3">
+            <!-- 5. STATISTICHE -->
+            <section id="sec-stats" class="hidden space-y-8">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-6">
+                    <div class="flex flex-wrap justify-between items-center border-b pb-4 gap-4">
                         <div>
-                            <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-clipboard-check text-emerald-600"></i> Presenti Partitella</h2>
-                            <p class="text-xs text-slate-500">Spunta i presenti per generare le formazioni bilanciate.</p>
+                            <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-chart-pie text-emerald-600"></i> Statistiche di Squadra</h2>
+                            <p class="text-xs text-slate-500">Analisi globale, Casa/Trasferta, Sintetico/Erba e grafici di rendimento.</p>
                         </div>
-                        <button onclick="toggleSelectAllPartitella()" id="btnSelectAllPartitella" class="text-xs bg-slate-100 text-slate-700 font-bold px-3 py-1.5 rounded-lg border hover:bg-slate-200 transition">
-                            Deseleziona Tutti
-                        </button>
-                    </div>
 
-                    <div id="partitellaCategoryList" class="space-y-4 max-h-[500px] overflow-y-auto pr-1"></div>
-                </div>
-
-                <!-- Squadre Risultato -->
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
-                    <div class="flex justify-between items-center border-b pb-3">
-                        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-shuffle text-amber-500"></i> Squadre Generati</h2>
-                        <button onclick="generateTeams()" class="bg-amber-500 hover:bg-amber-600 text-white font-bold px-4 py-2 rounded-lg text-xs transition shadow">Genera Squadre Bilanciate</button>
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div class="bg-blue-50/50 p-4 rounded-xl border border-blue-200">
-                            <div class="flex justify-between items-center border-b border-blue-200 pb-2 mb-2">
-                                <h3 class="font-bold text-blue-700 uppercase text-xs">Squadra Blu</h3>
-                                <span id="ratingTeamA" class="text-[11px] bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded">0 ★</span>
-                            </div>
-                            <ul id="partitellaA" class="space-y-1.5 text-xs"></ul>
-                        </div>
-                        <div class="bg-red-50/50 p-4 rounded-xl border border-red-200">
-                            <div class="flex justify-between items-center border-b border-red-200 pb-2 mb-2">
-                                <h3 class="font-bold text-red-700 uppercase text-xs">Squadra Rossa</h3>
-                                <span id="ratingTeamB" class="text-[11px] bg-red-100 text-red-800 font-bold px-2 py-0.5 rounded">0 ★</span>
-                            </div>
-                            <ul id="partitellaB" class="space-y-1.5 text-xs"></ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- 4. COMPILA REFERTO PARTITA -->
-        <section id="sec-gare" class="hidden space-y-6">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4 h-fit">
-                    <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2" id="matchFormTitle"><i class="fa-solid fa-trophy text-amber-500"></i> Compila referto partita</h2>
-                    <form id="matchForm" class="space-y-3">
-                        <input type="hidden" id="editingMatchId" value="">
-                        <div>
-                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Giorno & Avversario *</label>
-                            <input type="date" id="matchDate" required class="p-2 border rounded-lg text-sm w-full mb-2">
-                            <input type="text" id="matchOpponent" placeholder="Squadra Avversaria *" required class="p-2 border rounded-lg text-sm w-full">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Competizione *</label>
-                            <select id="matchType" class="p-2 border rounded-lg text-sm w-full">
+                        <div class="flex items-center gap-2">
+                            <label class="text-xs font-bold text-slate-600 uppercase">Competizione:</label>
+                            <select id="statsFilterComp" onchange="renderStats()" class="p-2 border rounded-lg text-sm bg-slate-50 font-bold text-emerald-800 outline-none focus:ring-2 focus:ring-emerald-500">
+                                <option value="TOTALE">Totale (Tutte)</option>
                                 <option value="Campionato">Campionato</option>
                                 <option value="Coppa">Coppa</option>
                                 <option value="Amichevole">Amichevole</option>
                             </select>
                         </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Sede *</label>
-                                <select id="matchVenue" class="p-2 border rounded-lg text-sm w-full">
-                                    <option value="Casa">Casa</option>
-                                    <option value="Trasferta">Trasferta</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Terreno *</label>
-                                <select id="matchSurface" class="p-2 border rounded-lg text-sm w-full">
-                                    <option value="Sintetico">Campo Sintetico</option>
-                                    <option value="Erba Naturale">Erba Naturale</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div class="border-t pt-3">
-                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Risultato Finale (90 Minuti)</label>
-                            <div class="grid grid-cols-2 gap-2">
-                                <input type="number" id="goalsUs" placeholder="Gol Noi" min="0" oninput="renderGoalDetailsInputs()" class="p-2 border rounded-lg text-sm">
-                                <input type="number" id="goalsThem" placeholder="Gol Loro" min="0" class="p-2 border rounded-lg text-sm">
-                            </div>
-                        </div>
+                    </div>
 
-                        <div id="goalsDetailContainer" class="space-y-2 border-t pt-3 hidden">
-                            <label class="block text-xs font-bold uppercase text-slate-600">Marcatori & Assist</label>
-                            <div id="goalsListInputs" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
+                    <!-- CARDS METRICHE E MEDIE PER PARTITA -->
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-center">
+                        <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-200">
+                            <span class="block text-2xl font-black text-emerald-700" id="teamPts">0</span>
+                            <span class="text-[10px] uppercase font-bold text-slate-500">Punti (Media <span id="avgPts">0</span>/p)</span>
                         </div>
-
-                        <div class="flex gap-2">
-                            <button type="submit" id="btnSubmitMatch" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 rounded-lg text-sm transition shadow">+ Salva Partita e Aggiorna Stats</button>
-                            <button type="button" id="btnCancelMatchEdit" onclick="resetMatchForm()" class="hidden bg-slate-300 text-slate-700 font-semibold py-2 px-3 rounded-lg text-sm">Annulla</button>
+                        <div class="bg-slate-50 p-3 rounded-xl border">
+                            <span class="block text-2xl font-black text-slate-800" id="teamPlayed">0</span>
+                            <span class="text-[10px] uppercase font-bold text-slate-500">Partite</span>
                         </div>
-                    </form>
-                </div>
-
-                <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
-                    <div class="flex flex-wrap justify-between items-center border-b pb-3 gap-2">
-                        <div>
-                            <h2 class="text-xl font-bold text-slate-800">Distinta Partita (1-20)</h2>
-                            <p class="text-xs text-slate-500">1-11 Titolari | 12-20 Panchina | Gestisci sostituzioni, cartellini e minutaggio.</p>
+                        <div class="bg-blue-50 p-3 rounded-xl border border-blue-200">
+                            <span class="block text-2xl font-black text-blue-700" id="teamWins">0</span>
+                            <span class="text-[10px] uppercase font-bold text-slate-500">Vittorie (<span id="teamWinsPct">0%</span>)</span>
                         </div>
-                        <div class="flex gap-2">
-                            <span id="startersAvgBadge" class="text-xs bg-emerald-100 border border-emerald-300 text-emerald-800 font-bold px-2.5 py-1 rounded-full">Media Titolari: 0 ★</span>
-                            <span id="benchAvgBadge" class="text-xs bg-amber-100 border border-amber-300 text-amber-800 font-bold px-2.5 py-1 rounded-full">Media Panchina: 0 ★</span>
+                        <div class="bg-amber-50 p-3 rounded-xl border border-amber-200">
+                            <span class="block text-2xl font-black text-amber-700" id="teamDraws">0</span>
+                            <span class="text-[10px] uppercase font-bold text-slate-500">Pareggi (<span id="teamDrawsPct">0%</span>)</span>
+                        </div>
+                        <div class="bg-red-50 p-3 rounded-xl border border-red-200">
+                            <span class="block text-2xl font-black text-red-700" id="teamLosses">0</span>
+                            <span class="text-[10px] uppercase font-bold text-slate-500">Sconfitte (<span id="teamLossesPct">0%</span>)</span>
+                        </div>
+                        <div class="bg-purple-50 p-3 rounded-xl border border-purple-200">
+                            <span class="block text-2xl font-black text-purple-700" id="teamDiff">0</span>
+                            <span class="text-[10px] uppercase font-bold text-slate-500">Diff. Reti (<span id="teamGF">0</span>-<span id="teamGA">0</span>)</span>
                         </div>
                     </div>
 
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-xs border-collapse">
-                            <thead class="bg-slate-100 border-b font-bold text-slate-600 uppercase">
-                                <tr>
-                                    <th class="p-2 w-8">#</th>
-                                    <th class="p-2 min-w-[180px]">Giocatore</th>
-                                    <th class="p-2 text-center">Giallo</th>
-                                    <th class="p-2 text-center">Rosso</th>
-                                    <th class="p-2">Sostituzione</th>
-                                    <th class="p-2 text-right">Min. Giocati</th>
-                                </tr>
-                            </thead>
-                            <tbody id="matchListTable"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </section>
+                    <!-- ANALISI CASA/TRASFERTA ED ERBA/SINTETICO CON PERCENTUALI -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
+                        <div class="bg-slate-50 p-4 rounded-xl border space-y-3">
+                            <h3 class="font-bold text-xs uppercase text-slate-700 flex items-center justify-between border-b pb-2">
+                                <span><i class="fa-solid fa-house-user text-emerald-600 mr-1"></i> Rendimento Casa vs Trasferta</span>
+                                <span class="text-[10px] text-slate-400 font-normal">% sul totale partite</span>
+                            </h3>
+                            <div class="grid grid-cols-2 gap-3 text-xs">
+                                <div class="bg-white p-3 rounded-lg border shadow-sm space-y-1">
+                                    <span class="font-extrabold text-emerald-700 block">CASA (<span id="homeGamesCount">0</span>) - <span id="homeGamesPct">0%</span></span>
+                                    <p class="text-slate-600">Punti: <b id="homePts">0</b></p>
+                                    <p class="text-slate-600">Gol Fatti: <b id="homeGF" class="text-emerald-600">0</b></p>
+                                    <p class="text-slate-600">Gol Subiti: <b id="homeGA" class="text-red-600">0</b></p>
+                                </div>
+                                <div class="bg-white p-3 rounded-lg border shadow-sm space-y-1">
+                                    <span class="font-extrabold text-blue-700 block">TRASFERTA (<span id="awayGamesCount">0</span>) - <span id="awayGamesPct">0%</span></span>
+                                    <p class="text-slate-600">Punti: <b id="awayPts">0</b></p>
+                                    <p class="text-slate-600">Gol Fatti: <b id="awayGF" class="text-emerald-600">0</b></p>
+                                    <p class="text-slate-600">Gol Subiti: <b id="awayGA" class="text-red-600">0</b></p>
+                                </div>
+                            </div>
+                        </div>
 
-        <!-- 5. STATISTICHE -->
-        <section id="sec-stats" class="hidden space-y-8">
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-6">
-                <div class="flex flex-wrap justify-between items-center border-b pb-4 gap-4">
+                        <div class="bg-slate-50 p-4 rounded-xl border space-y-3">
+                            <h3 class="font-bold text-xs uppercase text-slate-700 flex items-center justify-between border-b pb-2">
+                                <span><i class="fa-solid fa-layer-group text-teal-600 mr-1"></i> Rendimento Tipo Terreno</span>
+                                <span class="text-[10px] text-slate-400 font-normal">% sul totale partite</span>
+                            </h3>
+                            <div class="grid grid-cols-2 gap-3 text-xs">
+                                <div class="bg-white p-3 rounded-lg border shadow-sm space-y-1">
+                                    <span class="font-extrabold text-teal-700 block">SINTETICO (<span id="synthGamesCount">0</span>) - <span id="synthGamesPct">0%</span></span>
+                                    <p class="text-slate-600">Punti: <b id="synthPts">0</b></p>
+                                    <p class="text-slate-600">Gol Fatti: <b id="synthGF" class="text-emerald-600">0</b></p>
+                                    <p class="text-slate-600">Gol Subiti: <b id="synthGA" class="text-red-600">0</b></p>
+                                </div>
+                                <div class="bg-white p-3 rounded-lg border shadow-sm space-y-1">
+                                    <span class="font-extrabold text-green-700 block">ERBA NATURALE (<span id="grassGamesCount">0</span>) - <span id="grassGamesPct">0%</span></span>
+                                    <p class="text-slate-600">Punti: <b id="grassPts">0</b></p>
+                                    <p class="text-slate-600">Gol Fatti: <b id="grassGF" class="text-emerald-600">0</b></p>
+                                    <p class="text-slate-600">Gol Subiti: <b id="grassGA" class="text-red-600">0</b></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SUB-CARDS MEDIE PER PARTITA -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center border-t pt-3">
+                        <div class="bg-slate-50 p-2.5 rounded-lg border">
+                            <span class="block font-bold text-emerald-700 text-sm" id="avgGF">0.0</span>
+                            <span class="text-[10px] text-slate-500 uppercase font-semibold">Media Gol Fatti /p</span>
+                        </div>
+                        <div class="bg-slate-50 p-2.5 rounded-lg border">
+                            <span class="block font-bold text-red-600 text-sm" id="avgGA">0.0</span>
+                            <span class="text-[10px] text-slate-500 uppercase font-semibold">Media Gol Subiti /p</span>
+                        </div>
+                        <div class="bg-slate-50 p-2.5 rounded-lg border">
+                            <span class="block font-bold text-amber-600 text-sm" id="avgYellow">0.0</span>
+                            <span class="text-[10px] text-slate-500 uppercase font-semibold">Media Gialli /p</span>
+                        </div>
+                        <div class="bg-slate-50 p-2.5 rounded-lg border">
+                            <span class="block font-bold text-red-800 text-sm" id="avgRed">0.0</span>
+                            <span class="text-[10px] text-slate-500 uppercase font-semibold">Media Rossi /p</span>
+                        </div>
+                    </div>
+
+                    <!-- SEZIONE GRAFICI -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+                        <div class="bg-slate-50 p-4 rounded-xl border text-center flex flex-col items-center">
+                            <h3 class="font-bold text-xs uppercase text-slate-600 mb-2">Esito Gare (V / N / P)</h3>
+                            <div class="w-full max-w-[220px] h-[220px]">
+                                <canvas id="chartOutcome"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-50 p-4 rounded-xl border text-center flex flex-col items-center">
+                            <h3 class="font-bold text-xs uppercase text-slate-600 mb-2">Bilancio Reti</h3>
+                            <div class="w-full h-[220px]">
+                                <canvas id="chartGoals"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-50 p-4 rounded-xl border text-center flex flex-col items-center">
+                            <h3 class="font-bold text-xs uppercase text-slate-600 mb-2">Cartellini</h3>
+                            <div class="w-full h-[220px]">
+                                <canvas id="chartCards"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                        <div class="bg-slate-50 p-4 rounded-xl border">
+                            <h3 class="font-bold text-sm text-slate-800 mb-3 flex items-center gap-1.5"><i class="fa-solid fa-futbol text-emerald-600"></i> Classifica Marcatori</h3>
+                            <ul id="topScorersList" class="space-y-1.5 text-xs max-h-[220px] overflow-y-auto"></ul>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-xl border">
+                            <h3 class="font-bold text-sm text-slate-800 mb-3 flex items-center gap-1.5"><i class="fa-solid fa-hands-holding-circle text-blue-600"></i> Classifica Assistman</h3>
+                            <ul id="topAssistList" class="space-y-1.5 text-xs max-h-[220px] overflow-y-auto"></ul>
+                        </div>
+                    </div>
+
+                    <!-- STORICO PARTITE -->
                     <div>
-                        <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-chart-pie text-emerald-600"></i> Statistiche di Squadra</h2>
-                        <p class="text-xs text-slate-500">Analisi globale, Casa/Trasferta, Sintetico/Erba e grafici di rendimento.</p>
-                    </div>
-
-                    <div class="flex items-center gap-2">
-                        <label class="text-xs font-bold text-slate-600 uppercase">Competizione:</label>
-                        <select id="statsFilterComp" onchange="renderStats()" class="p-2 border rounded-lg text-sm bg-slate-50 font-bold text-emerald-800 outline-none focus:ring-2 focus:ring-emerald-500">
-                            <option value="TOTALE">Totale (Tutte)</option>
-                            <option value="Campionato">Campionato</option>
-                            <option value="Coppa">Coppa</option>
-                            <option value="Amichevole">Amichevole</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- CARDS METRICHE E MEDIE PER PARTITA -->
-                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-center">
-                    <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-200">
-                        <span class="block text-2xl font-black text-emerald-700" id="teamPts">0</span>
-                        <span class="text-[10px] uppercase font-bold text-slate-500">Punti (Media <span id="avgPts">0</span>/p)</span>
-                    </div>
-                    <div class="bg-slate-50 p-3 rounded-xl border">
-                        <span class="block text-2xl font-black text-slate-800" id="teamPlayed">0</span>
-                        <span class="text-[10px] uppercase font-bold text-slate-500">Partite</span>
-                    </div>
-                    <div class="bg-blue-50 p-3 rounded-xl border border-blue-200">
-                        <span class="block text-2xl font-black text-blue-700" id="teamWins">0</span>
-                        <span class="text-[10px] uppercase font-bold text-slate-500">Vittorie (<span id="teamWinsPct">0%</span>)</span>
-                    </div>
-                    <div class="bg-amber-50 p-3 rounded-xl border border-amber-200">
-                        <span class="block text-2xl font-black text-amber-700" id="teamDraws">0</span>
-                        <span class="text-[10px] uppercase font-bold text-slate-500">Pareggi (<span id="teamDrawsPct">0%</span>)</span>
-                    </div>
-                    <div class="bg-red-50 p-3 rounded-xl border border-red-200">
-                        <span class="block text-2xl font-black text-red-700" id="teamLosses">0</span>
-                        <span class="text-[10px] uppercase font-bold text-slate-500">Sconfitte (<span id="teamLossesPct">0%</span>)</span>
-                    </div>
-                    <div class="bg-purple-50 p-3 rounded-xl border border-purple-200">
-                        <span class="block text-2xl font-black text-purple-700" id="teamDiff">0</span>
-                        <span class="text-[10px] uppercase font-bold text-slate-500">Diff. Reti (<span id="teamGF">0</span>-<span id="teamGA">0</span>)</span>
-                    </div>
-                </div>
-
-                <!-- ANALISI CASA/TRASFERTA ED ERBA/SINTETICO CON PERCENTUALI -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
-                    <div class="bg-slate-50 p-4 rounded-xl border space-y-3">
-                        <h3 class="font-bold text-xs uppercase text-slate-700 flex items-center justify-between border-b pb-2">
-                            <span><i class="fa-solid fa-house-user text-emerald-600 mr-1"></i> Rendimento Casa vs Trasferta</span>
-                            <span class="text-[10px] text-slate-400 font-normal">% sul totale partite</span>
-                        </h3>
-                        <div class="grid grid-cols-2 gap-3 text-xs">
-                            <div class="bg-white p-3 rounded-lg border shadow-sm space-y-1">
-                                <span class="font-extrabold text-emerald-700 block">CASA (<span id="homeGamesCount">0</span>) - <span id="homeGamesPct">0%</span></span>
-                                <p class="text-slate-600">Punti: <b id="homePts">0</b></p>
-                                <p class="text-slate-600">Gol Fatti: <b id="homeGF" class="text-emerald-600">0</b></p>
-                                <p class="text-slate-600">Gol Subiti: <b id="homeGA" class="text-red-600">0</b></p>
-                            </div>
-                            <div class="bg-white p-3 rounded-lg border shadow-sm space-y-1">
-                                <span class="font-extrabold text-blue-700 block">TRASFERTA (<span id="awayGamesCount">0</span>) - <span id="awayGamesPct">0%</span></span>
-                                <p class="text-slate-600">Punti: <b id="awayPts">0</b></p>
-                                <p class="text-slate-600">Gol Fatti: <b id="awayGF" class="text-emerald-600">0</b></p>
-                                <p class="text-slate-600">Gol Subiti: <b id="awayGA" class="text-red-600">0</b></p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-slate-50 p-4 rounded-xl border space-y-3">
-                        <h3 class="font-bold text-xs uppercase text-slate-700 flex items-center justify-between border-b pb-2">
-                            <span><i class="fa-solid fa-layer-group text-teal-600 mr-1"></i> Rendimento Tipo Terreno</span>
-                            <span class="text-[10px] text-slate-400 font-normal">% sul totale partite</span>
-                        </h3>
-                        <div class="grid grid-cols-2 gap-3 text-xs">
-                            <div class="bg-white p-3 rounded-lg border shadow-sm space-y-1">
-                                <span class="font-extrabold text-teal-700 block">SINTETICO (<span id="synthGamesCount">0</span>) - <span id="synthGamesPct">0%</span></span>
-                                <p class="text-slate-600">Punti: <b id="synthPts">0</b></p>
-                                <p class="text-slate-600">Gol Fatti: <b id="synthGF" class="text-emerald-600">0</b></p>
-                                <p class="text-slate-600">Gol Subiti: <b id="synthGA" class="text-red-600">0</b></p>
-                            </div>
-                            <div class="bg-white p-3 rounded-lg border shadow-sm space-y-1">
-                                <span class="font-extrabold text-green-700 block">ERBA NATURALE (<span id="grassGamesCount">0</span>) - <span id="grassGamesPct">0%</span></span>
-                                <p class="text-slate-600">Punti: <b id="grassPts">0</b></p>
-                                <p class="text-slate-600">Gol Fatti: <b id="grassGF" class="text-emerald-600">0</b></p>
-                                <p class="text-slate-600">Gol Subiti: <b id="grassGA" class="text-red-600">0</b></p>
-                            </div>
+                        <h3 class="font-bold text-sm text-slate-800 mb-3 flex items-center gap-2"><i class="fa-solid fa-list-check text-amber-500"></i> Elenco Partite Registrate</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead class="bg-slate-100 border-b font-bold text-slate-600 uppercase">
+                                    <tr>
+                                        <th class="p-2.5">Data</th>
+                                        <th class="p-2.5">Competizione</th>
+                                        <th class="p-2.5">Avversario</th>
+                                        <th class="p-2.5">Sede / Terreno</th>
+                                        <th class="p-2.5 text-center">Risultato</th>
+                                        <th class="p-2.5 text-center">Esito</th>
+                                        <th class="p-2.5 text-right">Azioni</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="matchesHistoryTable"></tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
 
-                <!-- SUB-CARDS MEDIE PER PARTITA -->
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center border-t pt-3">
-                    <div class="bg-slate-50 p-2.5 rounded-lg border">
-                        <span class="block font-bold text-emerald-700 text-sm" id="avgGF">0.0</span>
-                        <span class="text-[10px] text-slate-500 uppercase font-semibold">Media Gol Fatti /p</span>
-                    </div>
-                    <div class="bg-slate-50 p-2.5 rounded-lg border">
-                        <span class="block font-bold text-red-600 text-sm" id="avgGA">0.0</span>
-                        <span class="text-[10px] text-slate-500 uppercase font-semibold">Media Gol Subiti /p</span>
-                    </div>
-                    <div class="bg-slate-50 p-2.5 rounded-lg border">
-                        <span class="block font-bold text-amber-600 text-sm" id="avgYellow">0.0</span>
-                        <span class="text-[10px] text-slate-500 uppercase font-semibold">Media Gialli /p</span>
-                    </div>
-                    <div class="bg-slate-50 p-2.5 rounded-lg border">
-                        <span class="block font-bold text-red-800 text-sm" id="avgRed">0.0</span>
-                        <span class="text-[10px] text-slate-500 uppercase font-semibold">Media Rossi /p</span>
-                    </div>
-                </div>
-
-                <!-- SEZIONE GRAFICI -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
-                    <div class="bg-slate-50 p-4 rounded-xl border text-center flex flex-col items-center">
-                        <h3 class="font-bold text-xs uppercase text-slate-600 mb-2">Esito Gare (V / N / P)</h3>
-                        <div class="w-full max-w-[220px] h-[220px]">
-                            <canvas id="chartOutcome"></canvas>
-                        </div>
-                    </div>
-
-                    <div class="bg-slate-50 p-4 rounded-xl border text-center flex flex-col items-center">
-                        <h3 class="font-bold text-xs uppercase text-slate-600 mb-2">Bilancio Reti</h3>
-                        <div class="w-full h-[220px]">
-                            <canvas id="chartGoals"></canvas>
-                        </div>
-                    </div>
-
-                    <div class="bg-slate-50 p-4 rounded-xl border text-center flex flex-col items-center">
-                        <h3 class="font-bold text-xs uppercase text-slate-600 mb-2">Cartellini</h3>
-                        <div class="w-full h-[220px]">
-                            <canvas id="chartCards"></canvas>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                    <div class="bg-slate-50 p-4 rounded-xl border">
-                        <h3 class="font-bold text-sm text-slate-800 mb-3 flex items-center gap-1.5"><i class="fa-solid fa-futbol text-emerald-600"></i> Classifica Marcatori</h3>
-                        <ul id="topScorersList" class="space-y-1.5 text-xs max-h-[220px] overflow-y-auto"></ul>
-                    </div>
-                    <div class="bg-slate-50 p-4 rounded-xl border">
-                        <h3 class="font-bold text-sm text-slate-800 mb-3 flex items-center gap-1.5"><i class="fa-solid fa-hands-holding-circle text-blue-600"></i> Classifica Assistman</h3>
-                        <ul id="topAssistList" class="space-y-1.5 text-xs max-h-[220px] overflow-y-auto"></ul>
-                    </div>
-                </div>
-
-                <!-- STORICO PARTITE -->
-                <div>
-                    <h3 class="font-bold text-sm text-slate-800 mb-3 flex items-center gap-2"><i class="fa-solid fa-list-check text-amber-500"></i> Elenco Partite Registrate</h3>
+                <!-- B. STATISTICHE INDIVIDUALI GIOCATORI -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                    <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-user-check text-blue-600"></i> Statistiche Individuali Giocatori</h2>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-xs border-collapse">
                             <thead class="bg-slate-100 border-b font-bold text-slate-600 uppercase">
                                 <tr>
-                                    <th class="p-2.5">Data</th>
-                                    <th class="p-2.5">Competizione</th>
-                                    <th class="p-2.5">Avversario</th>
-                                    <th class="p-2.5">Sede / Terreno</th>
-                                    <th class="p-2.5 text-center">Risultato</th>
-                                    <th class="p-2.5 text-center">Esito</th>
-                                    <th class="p-2.5 text-right">Azioni</th>
+                                    <th class="p-2.5">Giocatore</th>
+                                    <th class="p-2.5 text-center">Partite</th>
+                                    <th class="p-2.5 text-center">Minuti Giocati</th>
+                                    <th class="p-2.5 text-center">Gol</th>
+                                    <th class="p-2.5 text-center">Assist</th>
+                                    <th class="p-2.5 text-center">Gialli</th>
+                                    <th class="p-2.5 text-center">Rossi</th>
                                 </tr>
                             </thead>
-                            <tbody id="matchesHistoryTable"></tbody>
+                            <tbody id="individualStatsTable"></tbody>
                         </table>
                     </div>
                 </div>
-            </div>
 
-            <!-- B. STATISTICHE INDIVIDUALI GIOCATORI -->
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
-                <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-user-check text-blue-600"></i> Statistiche Individuali Giocatori</h2>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs border-collapse">
-                        <thead class="bg-slate-100 border-b font-bold text-slate-600 uppercase">
-                            <tr>
-                                <th class="p-2.5">Giocatore</th>
-                                <th class="p-2.5 text-center">Partite</th>
-                                <th class="p-2.5 text-center">Minuti Giocati</th>
-                                <th class="p-2.5 text-center">Gol</th>
-                                <th class="p-2.5 text-center">Assist</th>
-                                <th class="p-2.5 text-center">Gialli</th>
-                                <th class="p-2.5 text-center">Rossi</th>
-                            </tr>
-                        </thead>
-                        <tbody id="individualStatsTable"></tbody>
-                    </table>
-                </div>
-            </div>
+            </section>
 
-        </section>
+        </main>
+    </div>
 
-    </main>
-
-    <!-- LOGICA JAVASCRIPT -->
+    <!-- LOGICA JAVASCRIPT & SUPABASE CLOUD INTEGRATION -->
     <script>
+        // CONFIGURAZIONE SUPABASE
+        const SUPABASE_URL = 'https://iephqiiwtmkqlmeyaquw.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_sNc8c9Jx0-FOOsPCLdqUOw_ow_Q7RmQ';
+        
+        let supabaseClient = null;
+        if (typeof supabase !== 'undefined') {
+            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        }
+
         if (typeof ChartDataLabels !== 'undefined') {
             Chart.register(ChartDataLabels);
         }
+
+        let authMode = 'login';
+        let currentUser = null;
 
         let coachProfile = JSON.parse(localStorage.getItem('misterApp_coach')) || {
             nome: 'Nicola',
@@ -548,8 +612,8 @@
             season: '2026/2027'
         };
 
-        let players = JSON.parse(localStorage.getItem('misterApp_players')) || [];
-        let matches = JSON.parse(localStorage.getItem('misterApp_matches')) || [];
+        let players = [];
+        let matches = [];
         let partitellaAttendanceState = {};
 
         const roleOrderMap = { 'POR': 1, 'DC': 2, 'TD': 3, 'TS': 4, 'CC': 5, 'ALA': 6, 'P': 7 };
@@ -569,7 +633,206 @@
         let chartGoalsInstance = null;
         let chartCardsInstance = null;
 
-        // PROFILE & ACCOUNT
+        // CHECK AUTH SESSION & RECOVERY LINKS
+        async function checkSession() {
+            if (!supabaseClient) {
+                document.getElementById('authScreen').classList.add('hidden');
+                document.getElementById('appContent').classList.remove('hidden');
+                loadLocalData();
+                renderAll();
+                return;
+            }
+
+            // Ascolta gli eventi di auth compreso il reset password via email
+            supabaseClient.auth.onAuthStateChange(async (event, session) => {
+                if (event === 'PASSWORD_RECOVERY') {
+                    document.getElementById('resetPasswordModal').classList.remove('hidden');
+                } else if (session) {
+                    currentUser = session.user;
+                    document.getElementById('authScreen').classList.add('hidden');
+                    document.getElementById('appContent').classList.remove('hidden');
+                    await loadCloudData();
+                    renderAll();
+                } else {
+                    document.getElementById('authScreen').classList.remove('hidden');
+                    document.getElementById('appContent').classList.add('hidden');
+                }
+            });
+
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                currentUser = session.user;
+                document.getElementById('authScreen').classList.add('hidden');
+                document.getElementById('appContent').classList.remove('hidden');
+                await loadCloudData();
+                renderAll();
+            }
+        }
+
+        async function handleAuth(e) {
+            e.preventDefault();
+            const email = document.getElementById('authEmail').value;
+            const password = document.getElementById('authPassword').value;
+
+            if (!supabaseClient) {
+                alert("Supabase non disponibile, utilizzo in locale.");
+                document.getElementById('authScreen').classList.add('hidden');
+                document.getElementById('appContent').classList.remove('hidden');
+                return;
+            }
+
+            if (authMode === 'register') {
+                const { data, error } = await supabaseClient.auth.signUp({ email, password });
+                if (error) alert("Errore Registrazione: " + error.message);
+                else {
+                    alert("Registrazione effettuata! Se richiesto, verifica l'email prima di accedere.");
+                    checkSession();
+                }
+            } else {
+                const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                if (error) alert("Errore Accesso: " + error.message);
+                else checkSession();
+            }
+        }
+
+        // INVIO EMAIL RECUPERO PASSWORD
+        async function sendPasswordReset() {
+            const email = document.getElementById('authEmail').value;
+            if (!email) {
+                alert("Inserisci prima il tuo indirizzo email nel campo sopra per ricevere il link di ripristino!");
+                return;
+            }
+
+            if (!supabaseClient) {
+                alert("Servizio Cloud non configurato.");
+                return;
+            }
+
+            const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+                redirectTo: window.location.href,
+            });
+
+            if (error) {
+                alert("Errore durante l'invio dell'email: " + error.message);
+            } else {
+                alert("Email di ripristino inviata! Controlla la tua casella di posta elettronica e fai clic sul link per impostare la nuova password.");
+            }
+        }
+
+        // AGGIORNAMENTO PASSWORD DOPO IL LINK
+        async function handleUpdatePassword(e) {
+            e.preventDefault();
+            const newPassword = document.getElementById('newPassword').value;
+
+            if (!supabaseClient) return;
+
+            const { data, error } = await supabaseClient.auth.updateUser({ password: newPassword });
+
+            if (error) {
+                alert("Errore aggiornamento password: " + error.message);
+            } else {
+                alert("Password aggiornata con successo! Ora puoi accedere.");
+                document.getElementById('resetPasswordModal').classList.add('hidden');
+                checkSession();
+            }
+        }
+
+        async function logout() {
+            if (supabaseClient) await supabaseClient.auth.signOut();
+            currentUser = null;
+            location.reload();
+        }
+
+        // SYNC SUPABASE DATA
+        async function loadCloudData() {
+            if (!supabaseClient || !currentUser) {
+                loadLocalData();
+                return;
+            }
+
+            try {
+                const { data: cloudPlayers } = await supabaseClient.from('players').select('*');
+                if (cloudPlayers) {
+                    players = cloudPlayers.map(p => ({
+                        id: p.id,
+                        nome: p.nome,
+                        cognome: p.cognome,
+                        annoNascita: p.anno_nascita,
+                        eta: p.eta,
+                        foto: p.foto,
+                        ruoloPrimario: p.ruolo_primario,
+                        ruoliSecondari: p.ruoli_secondari,
+                        rating: parseFloat(p.rating),
+                        vel: p.vel, res: p.res, forca: p.forca, tec: p.tec, tat: p.tat, att: p.att
+                    }));
+                }
+
+                const { data: cloudMatches } = await supabaseClient.from('matches').select('*');
+                if (cloudMatches) {
+                    matches = cloudMatches.map(m => ({
+                        id: m.id,
+                        date: m.date,
+                        opponent: m.opponent,
+                        type: m.type,
+                        venue: m.venue,
+                        surface: m.surface,
+                        goalsUs: m.goals_us,
+                        goalsThem: m.goals_them,
+                        goalsDetails: m.goals_details,
+                        roster: m.roster
+                    }));
+                }
+            } catch (err) {
+                console.warn("Utilizzo dati locali per fallback:", err);
+                loadLocalData();
+            }
+        }
+
+        function loadLocalData() {
+            players = JSON.parse(localStorage.getItem('misterApp_players')) || [];
+            matches = JSON.parse(localStorage.getItem('misterApp_matches')) || [];
+        }
+
+        async function saveData() {
+            localStorage.setItem('misterApp_players', JSON.stringify(players));
+            localStorage.setItem('misterApp_matches', JSON.stringify(matches));
+            localStorage.setItem('misterApp_coach', JSON.stringify(coachProfile));
+
+            if (supabaseClient && currentUser) {
+                for (let p of players) {
+                    await supabaseClient.from('players').upsert({
+                        id: p.id,
+                        user_id: currentUser.id,
+                        nome: p.nome,
+                        cognome: p.cognome,
+                        anno_nascita: p.annoNascita,
+                        eta: p.eta,
+                        foto: p.foto,
+                        ruolo_primario: p.ruoloPrimario,
+                        ruoli_secondari: p.ruoliSecondari,
+                        rating: p.rating,
+                        vel: p.vel, res: p.res, forca: p.forca, tec: p.tec, tat: p.tat, att: p.att
+                    });
+                }
+
+                for (let m of matches) {
+                    await supabaseClient.from('matches').upsert({
+                        id: m.id,
+                        user_id: currentUser.id,
+                        date: m.date,
+                        opponent: m.opponent,
+                        type: m.type,
+                        venue: m.venue,
+                        surface: m.surface,
+                        goals_us: m.goalsUs,
+                        goals_them: m.goalsThem,
+                        goals_details: m.goalsDetails,
+                        roster: m.roster
+                    });
+                }
+            }
+        }
+
         function updateCoachUI() {
             document.getElementById('navCoachName').innerText = `${coachProfile.nome} ${coachProfile.cognome}`;
             document.getElementById('navCoachTeam').innerText = `${coachProfile.team} (${coachProfile.season})`;
@@ -596,7 +859,7 @@
                 team: document.getElementById('coachTeam').value,
                 season: document.getElementById('coachSeason').value
             };
-            localStorage.setItem('misterApp_coach', JSON.stringify(coachProfile));
+            saveData();
             updateCoachUI();
             closeAccountModal();
         });
@@ -687,7 +950,7 @@
 
         const playerFormElem = document.getElementById('playerForm');
         if(playerFormElem) {
-            playerFormElem.addEventListener('submit', function(e) {
+            playerFormElem.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
                 const editingId = document.getElementById('editingPlayerId').value;
@@ -730,13 +993,12 @@
                         ruoloPrimario: ruoloPrimario,
                         ruoliSecondari: ruoliSecondari,
                         rating: parseFloat(rating),
-                        vel: vel, res: res, forca: forca, tec: tec, tat: tat, att: att,
-                        presenze: 0, assenzaMotivo: '', presenteAllenamento: true
+                        vel: vel, res: res, forca: forca, tec: tec, tat: tat, att: att
                     };
                     players.push(player);
                 }
 
-                saveData();
+                await saveData();
                 resetForm();
                 renderRosa();
             });
@@ -839,9 +1101,12 @@
             document.getElementById('avgAgeBadge').innerText = `Età Media: ${avgAge} ${avgAge !== '-' ? 'anni' : ''}`;
         }
 
-        function deletePlayer(id) {
+        async function deletePlayer(id) {
             if (confirm("Sei sicuro di voler eliminare questo giocatore?")) {
                 players = players.filter(p => p.id !== id);
+                if (supabaseClient && currentUser) {
+                    await supabaseClient.from('players').delete().eq('id', id);
+                }
                 saveData();
                 renderAll();
             }
@@ -1165,7 +1430,7 @@
 
         const matchFormElem = document.getElementById('matchForm');
         if(matchFormElem) {
-            matchFormElem.addEventListener('submit', function(e) {
+            matchFormElem.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 const editingMatchId = document.getElementById('editingMatchId').value;
                 const goalsUs = parseInt(document.getElementById('goalsUs').value) || 0;
@@ -1200,7 +1465,7 @@
                     matches.push(matchObject);
                 }
 
-                saveData();
+                await saveData();
                 alert("Partita salvata con successo!");
                 resetMatchForm();
                 renderAll();
@@ -1224,7 +1489,8 @@
         }
 
         function editMatch(matchId) {
-            const m = matches.find(x => x.id === matchId);
+            const numId = parseInt(matchId);
+            const m = matches.find(x => x.id === numId);
             if (!m) return;
 
             showSection('gare');
@@ -1255,9 +1521,13 @@
             }
         }
 
-        function deleteMatch(matchId) {
+        async function deleteMatch(matchId) {
+            const numId = parseInt(matchId);
             if (confirm("Sei sicuro di voler eliminare questa partita?")) {
-                matches = matches.filter(m => m.id !== matchId);
+                matches = matches.filter(m => m.id !== numId);
+                if (supabaseClient && currentUser) {
+                    await supabaseClient.from('matches').delete().eq('id', numId);
+                }
                 saveData();
                 renderAll();
             }
@@ -1519,7 +1789,7 @@
         }
 
         window.addEventListener('DOMContentLoaded', () => {
-            renderAll();
+            checkSession();
         });
     </script>
 </body>
