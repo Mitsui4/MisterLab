@@ -271,7 +271,7 @@
                                 <p class="text-xs text-slate-500">Spunta i presenti per generare le formazioni bilanciate.</p>
                             </div>
                             <button onclick="toggleSelectAllPartitella()" id="btnSelectAllPartitella" class="text-xs bg-slate-100 text-slate-700 font-bold px-3 py-1.5 rounded-lg border hover:bg-slate-200 transition">
-                                Deseleziona Tutti
+                                Deselezionat Tutti
                             </button>
                         </div>
                         <div id="partitellaCategoryList" class="space-y-4 max-h-[500px] overflow-y-auto pr-1"></div>
@@ -589,13 +589,19 @@
 
     <!-- LOGICA JAVASCRIPT & SUPABASE CLOUD INTEGRATION -->
     <script>
-        // CONFIGURAZIONE SUPABASE
+        // CONFIGURAZIONE SUPABASE CON PERSISTENZA ATTIVA
         const SUPABASE_URL = 'https://iephqiiwtmkqlmeyaquw.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_sNc8c9Jx0-FOOsPCLdqUOw_ow_Q7RmQ';
         
         let supabaseClient = null;
         if (typeof supabase !== 'undefined') {
-            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+                auth: {
+                    persistSession: true,     // Mantiene la sessione salvata
+                    autoRefreshToken: true,   // Rinnova il token in automatico
+                    detectSessionInUrl: true  // Gestisce i link di recupero/login
+                }
+            });
         }
 
         if (typeof ChartDataLabels !== 'undefined') {
@@ -643,7 +649,6 @@
                 return;
             }
 
-            // Ascolta gli eventi di auth compreso il reset password via email
             supabaseClient.auth.onAuthStateChange(async (event, session) => {
                 if (event === 'PASSWORD_RECOVERY') {
                     document.getElementById('resetPasswordModal').classList.remove('hidden');
@@ -695,7 +700,6 @@
             }
         }
 
-        // INVIO EMAIL RECUPERO PASSWORD
         async function sendPasswordReset() {
             const email = document.getElementById('authEmail').value;
             if (!email) {
@@ -719,7 +723,6 @@
             }
         }
 
-        // AGGIORNAMENTO PASSWORD DOPO IL LINK
         async function handleUpdatePassword(e) {
             e.preventDefault();
             const newPassword = document.getElementById('newPassword').value;
