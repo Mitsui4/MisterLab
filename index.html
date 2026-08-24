@@ -1,0 +1,1526 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MisterApp - Gestione Calcio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js e Plugin DataLabels -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+</head>
+<body class="bg-slate-100 font-sans text-slate-800 pb-12">
+
+    <!-- Header / Navbar -->
+    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
+            <!-- Account & Mister Info -->
+            <div class="flex items-center gap-3">
+                <button onclick="openAccountModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow">
+                    <i class="fa-solid fa-user-gear"></i> Account
+                </button>
+                <div class="text-xs border-l border-slate-700 pl-3">
+                    <span class="block text-slate-400 text-[10px] uppercase tracking-wider font-semibold" id="navCoachTeam">Mister & Squadra</span>
+                    <span class="font-extrabold text-emerald-400 text-sm" id="navCoachName">Mister Non Registrato</span>
+                </div>
+            </div>
+
+            <!-- Navigazione Principale -->
+            <nav class="flex flex-wrap gap-1.5 text-xs">
+                <button onclick="showSection('home')" class="nav-btn bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1"><i class="fa-solid fa-house text-emerald-400"></i> Home</button>
+                <button onclick="showSection('rosa')" class="nav-btn bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg font-semibold transition"><i class="fa-solid fa-users mr-1"></i> Rosa</button>
+                <button onclick="showSection('partitella')" class="nav-btn bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg font-semibold transition"><i class="fa-solid fa-stopwatch mr-1"></i> Partitella</button>
+                <button onclick="showSection('gare')" class="nav-btn bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg font-semibold transition"><i class="fa-solid fa-trophy mr-1"></i> Compila referto partita</button>
+                <button onclick="showSection('stats')" class="nav-btn bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg font-semibold transition"><i class="fa-solid fa-chart-line mr-1"></i> Statistiche</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- MODALE ACCOUNT ALLENATORE -->
+    <div id="accountModal" class="fixed inset-0 bg-slate-900/70 z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md space-y-4 relative">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-id-card text-emerald-600"></i> Profilo Allenatore</h3>
+                <button onclick="closeAccountModal()" class="text-slate-400 hover:text-slate-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="accountForm" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Nome *</label>
+                    <input type="text" id="coachNome" required class="p-2 border rounded-lg text-sm w-full outline-none focus:ring-2 focus:ring-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Cognome *</label>
+                    <input type="text" id="coachCognome" required class="p-2 border rounded-lg text-sm w-full outline-none focus:ring-2 focus:ring-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Nome Squadra *</label>
+                    <input type="text" id="coachTeam" placeholder="es. ASD DOGO" required class="p-2 border rounded-lg text-sm w-full outline-none focus:ring-2 focus:ring-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Stagione Sportiva *</label>
+                    <select id="coachSeason" required class="p-2 border rounded-lg text-sm w-full outline-none font-bold text-slate-700">
+                        <option value="2026/2027">2026/2027</option>
+                        <option value="2027/2028">2027/2028</option>
+                        <option value="2028/2029">2028/2029</option>
+                        <option value="2029/2030">2029/2030</option>
+                    </select>
+                </div>
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-lg text-sm transition shadow">+ Salva Profilo</button>
+            </form>
+        </div>
+    </div>
+
+    <main class="max-w-7xl mx-auto px-4 mt-6">
+
+        <!-- 1. HOME -->
+        <section id="sec-home" class="space-y-6">
+            <div class="bg-gradient-to-r from-slate-900 to-emerald-900 text-white p-8 rounded-2xl shadow-lg text-center">
+                <h2 class="text-3xl font-extrabold mb-2" id="homeWelcomeTitle">Benvenuto Mister!</h2>
+                <p class="text-slate-300 max-w-2xl mx-auto">Gestisci la tua squadra a 360°: dalla rosa alle partitelle, referti di gara e analisi statistiche avanzate.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div onclick="showSection('rosa')" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition cursor-pointer group text-center">
+                    <div class="w-12 h-12 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl mb-4 mx-auto group-hover:scale-110 transition"><i class="fa-solid fa-users"></i></div>
+                    <h3 class="font-bold text-base mb-1 text-slate-800">1. Rosa Giocatori</h3>
+                    <p class="text-xs text-slate-500">Giocatori, ruoli e valutazioni.</p>
+                </div>
+
+                <div onclick="showSection('partitella')" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition cursor-pointer group text-center">
+                    <div class="w-12 h-12 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-xl mb-4 mx-auto group-hover:scale-110 transition"><i class="fa-solid fa-stopwatch"></i></div>
+                    <h3 class="font-bold text-base mb-1 text-slate-800">2. Partitella</h3>
+                    <p class="text-xs text-slate-500">Seleziona presenti e bilancia squadre.</p>
+                </div>
+
+                <div onclick="showSection('gare')" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition cursor-pointer group text-center">
+                    <div class="w-12 h-12 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center text-xl mb-4 mx-auto group-hover:scale-110 transition"><i class="fa-solid fa-trophy"></i></div>
+                    <h3 class="font-bold text-base mb-1 text-slate-800">3. Referto Partita</h3>
+                    <p class="text-xs text-slate-500">Distinta 1-20, minutaggi e marcatori.</p>
+                </div>
+
+                <div onclick="showSection('stats')" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition cursor-pointer group text-center">
+                    <div class="w-12 h-12 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-xl mb-4 mx-auto group-hover:scale-110 transition"><i class="fa-solid fa-chart-pie"></i></div>
+                    <h3 class="font-bold text-base mb-1 text-slate-800">4. Statistiche</h3>
+                    <p class="text-xs text-slate-500">Grafici Casa/Trasferta e Erba/Sintetico.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. ROSA GIOCATORI -->
+        <section id="sec-rosa" class="hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h2 class="text-xl font-bold mb-4 text-slate-800 flex items-center gap-2" id="formTitle">
+                        <i class="fa-solid fa-user-plus text-emerald-600"></i> Nuovo Giocatore
+                    </h2>
+                    <form id="playerForm" class="space-y-4">
+                        <input type="hidden" id="editingPlayerId" value="">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Dati Personali *</label>
+                            <div class="grid grid-cols-2 gap-2 mb-2">
+                                <input type="text" id="nome" placeholder="Nome *" required class="p-2 border rounded-lg text-sm w-full focus:ring-2 focus:ring-emerald-500 outline-none">
+                                <input type="text" id="cognome" placeholder="Cognome *" required class="p-2 border rounded-lg text-sm w-full focus:ring-2 focus:ring-emerald-500 outline-none">
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 items-center">
+                                <div>
+                                    <input type="number" id="annoNascita" min="1950" max="2026" placeholder="Anno *" oninput="calculateAge()" required class="p-2 border rounded-lg text-sm w-full focus:ring-2 focus:ring-emerald-500 outline-none">
+                                </div>
+                                <div>
+                                    <span class="text-xs font-bold text-slate-600">Età: <span id="etaDisplay" class="text-emerald-600 font-extrabold">-</span></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Foto Giocatore</label>
+                            <input type="file" id="fotoInput" accept="image/*" class="text-xs w-full">
+                        </div>
+
+                        <div class="space-y-3 border-t pt-3">
+                            <div class="bg-emerald-50/60 p-3 rounded-lg border border-emerald-200">
+                                <label class="block text-xs font-bold uppercase text-emerald-800 mb-1"><i class="fa-solid fa-star text-amber-500 mr-1"></i> Ruolo Principale *</label>
+                                <select id="ruoloPrincipale" required class="w-full p-2 border rounded-lg text-sm bg-white font-semibold text-slate-700">
+                                    <option value="">-- Seleziona Ruolo --</option>
+                                    <option value="POR">Portiere (POR)</option>
+                                    <option value="DC">Difensore Centrale (DC)</option>
+                                    <option value="TD">Terzino Destro (TD)</option>
+                                    <option value="TS">Terzino Sinistro (TS)</option>
+                                    <option value="CC">Centrocampista (CC)</option>
+                                    <option value="ALA">Ala / Esterno (ALA)</option>
+                                    <option value="P">Punta / Attaccante (P)</option>
+                                </select>
+                            </div>
+
+                            <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                <div class="flex justify-between items-center mb-2">
+                                    <label class="block text-xs font-bold uppercase text-slate-600">Ruoli Secondari</label>
+                                    <button type="button" onclick="addSecondaryRoleInput()" class="text-xs bg-emerald-600 text-white font-semibold px-2 py-1 rounded">+ Aggiungi</button>
+                                </div>
+                                <div id="secRolesContainer" class="space-y-2"></div>
+                            </div>
+                        </div>
+
+                        <div class="border-t pt-3">
+                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-2">Rating Atleta (1-5)</label>
+                            <div class="grid grid-cols-2 gap-3 text-xs">
+                                <div>Velocità: <b id="vVel">3</b><input type="range" id="vel" min="1" max="5" value="3" step="0.5" class="w-full accent-emerald-600" oninput="vVel.innerText=this.value"></div>
+                                <div>Resistenza: <b id="vRes">3</b><input type="range" id="res" min="1" max="5" value="3" step="0.5" class="w-full accent-emerald-600" oninput="vRes.innerText=this.value"></div>
+                                <div>Forza Fisica: <b id="vFor">3</b><input type="range" id="for" min="1" max="5" value="3" step="0.5" class="w-full accent-emerald-600" oninput="vFor.innerText=this.value"></div>
+                                <div>Tecnica: <b id="vTec">3</b><input type="range" id="tec" min="1" max="5" value="3" step="0.5" class="w-full accent-emerald-600" oninput="vTec.innerText=this.value"></div>
+                                <div>Tattica: <b id="vTat">3</b><input type="range" id="tat" min="1" max="5" value="3" step="0.5" class="w-full accent-emerald-600" oninput="vTat.innerText=this.value"></div>
+                                <div>Attitudine: <b id="vAtt">3</b><input type="range" id="att" min="1" max="5" value="3" step="0.5" class="w-full accent-emerald-600" oninput="vAtt.innerText=this.value"></div>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button type="submit" id="btnSubmitPlayer" class="w-full bg-emerald-600 text-white font-semibold py-2 rounded-lg text-sm">+ Salva Giocatore</button>
+                            <button type="button" id="btnCancelEdit" onclick="resetForm()" class="hidden bg-slate-300 text-slate-700 font-semibold py-2 px-3 rounded-lg text-sm">Annulla</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h2 class="text-xl font-bold mb-4 text-slate-800 flex justify-between items-center">
+                        <span><i class="fa-solid fa-users text-blue-600"></i> Rosa Giocatori</span>
+                        <div class="flex gap-2">
+                            <span id="avgAgeBadge" class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-1 rounded">Età Media: -</span>
+                            <span id="rosaCount" class="text-xs bg-slate-100 px-2 py-1 rounded font-semibold">0 Giocatori</span>
+                        </div>
+                    </h2>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm border-collapse">
+                            <thead class="bg-slate-100 border-b text-slate-600 text-xs uppercase font-bold">
+                                <tr>
+                                    <th class="p-3">Foto</th>
+                                    <th class="p-3">Giocatore</th>
+                                    <th class="p-3">Età</th>
+                                    <th class="p-3">Ruoli</th>
+                                    <th class="p-3">Rating</th>
+                                    <th class="p-3 text-right">Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rosaTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. PARTITELLA -->
+        <section id="sec-partitella" class="hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Selezione Presenti per Categoria -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                    <div class="flex justify-between items-center border-b pb-3">
+                        <div>
+                            <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-clipboard-check text-emerald-600"></i> Presenti Partitella</h2>
+                            <p class="text-xs text-slate-500">Spunta i presenti per generare le formazioni bilanciate.</p>
+                        </div>
+                        <button onclick="toggleSelectAllPartitella()" id="btnSelectAllPartitella" class="text-xs bg-slate-100 text-slate-700 font-bold px-3 py-1.5 rounded-lg border hover:bg-slate-200 transition">
+                            Deseleziona Tutti
+                        </button>
+                    </div>
+
+                    <div id="partitellaCategoryList" class="space-y-4 max-h-[500px] overflow-y-auto pr-1"></div>
+                </div>
+
+                <!-- Squadre Risultato -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                    <div class="flex justify-between items-center border-b pb-3">
+                        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-shuffle text-amber-500"></i> Squadre Generati</h2>
+                        <button onclick="generateTeams()" class="bg-amber-500 hover:bg-amber-600 text-white font-bold px-4 py-2 rounded-lg text-xs transition shadow">Genera Squadre Bilanciate</button>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="bg-blue-50/50 p-4 rounded-xl border border-blue-200">
+                            <div class="flex justify-between items-center border-b border-blue-200 pb-2 mb-2">
+                                <h3 class="font-bold text-blue-700 uppercase text-xs">Squadra Blu</h3>
+                                <span id="ratingTeamA" class="text-[11px] bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded">0 ★</span>
+                            </div>
+                            <ul id="partitellaA" class="space-y-1.5 text-xs"></ul>
+                        </div>
+                        <div class="bg-red-50/50 p-4 rounded-xl border border-red-200">
+                            <div class="flex justify-between items-center border-b border-red-200 pb-2 mb-2">
+                                <h3 class="font-bold text-red-700 uppercase text-xs">Squadra Rossa</h3>
+                                <span id="ratingTeamB" class="text-[11px] bg-red-100 text-red-800 font-bold px-2 py-0.5 rounded">0 ★</span>
+                            </div>
+                            <ul id="partitellaB" class="space-y-1.5 text-xs"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. COMPILA REFERTO PARTITA -->
+        <section id="sec-gare" class="hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4 h-fit">
+                    <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2" id="matchFormTitle"><i class="fa-solid fa-trophy text-amber-500"></i> Compila referto partita</h2>
+                    <form id="matchForm" class="space-y-3">
+                        <input type="hidden" id="editingMatchId" value="">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Giorno & Avversario *</label>
+                            <input type="date" id="matchDate" required class="p-2 border rounded-lg text-sm w-full mb-2">
+                            <input type="text" id="matchOpponent" placeholder="Squadra Avversaria *" required class="p-2 border rounded-lg text-sm w-full">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Competizione *</label>
+                            <select id="matchType" class="p-2 border rounded-lg text-sm w-full">
+                                <option value="Campionato">Campionato</option>
+                                <option value="Coppa">Coppa</option>
+                                <option value="Amichevole">Amichevole</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Sede *</label>
+                                <select id="matchVenue" class="p-2 border rounded-lg text-sm w-full">
+                                    <option value="Casa">Casa</option>
+                                    <option value="Trasferta">Trasferta</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Terreno *</label>
+                                <select id="matchSurface" class="p-2 border rounded-lg text-sm w-full">
+                                    <option value="Sintetico">Campo Sintetico</option>
+                                    <option value="Erba Naturale">Erba Naturale</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="border-t pt-3">
+                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Risultato Finale (90 Minuti)</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="number" id="goalsUs" placeholder="Gol Noi" min="0" oninput="renderGoalDetailsInputs()" class="p-2 border rounded-lg text-sm">
+                                <input type="number" id="goalsThem" placeholder="Gol Loro" min="0" class="p-2 border rounded-lg text-sm">
+                            </div>
+                        </div>
+
+                        <div id="goalsDetailContainer" class="space-y-2 border-t pt-3 hidden">
+                            <label class="block text-xs font-bold uppercase text-slate-600">Marcatori & Assist</label>
+                            <div id="goalsListInputs" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button type="submit" id="btnSubmitMatch" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 rounded-lg text-sm transition shadow">+ Salva Partita e Aggiorna Stats</button>
+                            <button type="button" id="btnCancelMatchEdit" onclick="resetMatchForm()" class="hidden bg-slate-300 text-slate-700 font-semibold py-2 px-3 rounded-lg text-sm">Annulla</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                    <div class="flex flex-wrap justify-between items-center border-b pb-3 gap-2">
+                        <div>
+                            <h2 class="text-xl font-bold text-slate-800">Distinta Partita (1-20)</h2>
+                            <p class="text-xs text-slate-500">1-11 Titolari | 12-20 Panchina | Gestisci sostituzioni, cartellini e minutaggio.</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <span id="startersAvgBadge" class="text-xs bg-emerald-100 border border-emerald-300 text-emerald-800 font-bold px-2.5 py-1 rounded-full">Media Titolari: 0 ★</span>
+                            <span id="benchAvgBadge" class="text-xs bg-amber-100 border border-amber-300 text-amber-800 font-bold px-2.5 py-1 rounded-full">Media Panchina: 0 ★</span>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead class="bg-slate-100 border-b font-bold text-slate-600 uppercase">
+                                <tr>
+                                    <th class="p-2 w-8">#</th>
+                                    <th class="p-2 min-w-[180px]">Giocatore</th>
+                                    <th class="p-2 text-center">Giallo</th>
+                                    <th class="p-2 text-center">Rosso</th>
+                                    <th class="p-2">Sostituzione</th>
+                                    <th class="p-2 text-right">Min. Giocati</th>
+                                </tr>
+                            </thead>
+                            <tbody id="matchListTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. STATISTICHE -->
+        <section id="sec-stats" class="hidden space-y-8">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-6">
+                <div class="flex flex-wrap justify-between items-center border-b pb-4 gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-chart-pie text-emerald-600"></i> Statistiche di Squadra</h2>
+                        <p class="text-xs text-slate-500">Analisi globale, Casa/Trasferta, Sintetico/Erba e grafici di rendimento.</p>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <label class="text-xs font-bold text-slate-600 uppercase">Competizione:</label>
+                        <select id="statsFilterComp" onchange="renderStats()" class="p-2 border rounded-lg text-sm bg-slate-50 font-bold text-emerald-800 outline-none focus:ring-2 focus:ring-emerald-500">
+                            <option value="TOTALE">Totale (Tutte)</option>
+                            <option value="Campionato">Campionato</option>
+                            <option value="Coppa">Coppa</option>
+                            <option value="Amichevole">Amichevole</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- CARDS METRICHE E MEDIE PER PARTITA -->
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-center">
+                    <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-200">
+                        <span class="block text-2xl font-black text-emerald-700" id="teamPts">0</span>
+                        <span class="text-[10px] uppercase font-bold text-slate-500">Punti (Media <span id="avgPts">0</span>/p)</span>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-xl border">
+                        <span class="block text-2xl font-black text-slate-800" id="teamPlayed">0</span>
+                        <span class="text-[10px] uppercase font-bold text-slate-500">Partite</span>
+                    </div>
+                    <div class="bg-blue-50 p-3 rounded-xl border border-blue-200">
+                        <span class="block text-2xl font-black text-blue-700" id="teamWins">0</span>
+                        <span class="text-[10px] uppercase font-bold text-slate-500">Vittorie (<span id="teamWinsPct">0%</span>)</span>
+                    </div>
+                    <div class="bg-amber-50 p-3 rounded-xl border border-amber-200">
+                        <span class="block text-2xl font-black text-amber-700" id="teamDraws">0</span>
+                        <span class="text-[10px] uppercase font-bold text-slate-500">Pareggi (<span id="teamDrawsPct">0%</span>)</span>
+                    </div>
+                    <div class="bg-red-50 p-3 rounded-xl border border-red-200">
+                        <span class="block text-2xl font-black text-red-700" id="teamLosses">0</span>
+                        <span class="text-[10px] uppercase font-bold text-slate-500">Sconfitte (<span id="teamLossesPct">0%</span>)</span>
+                    </div>
+                    <div class="bg-purple-50 p-3 rounded-xl border border-purple-200">
+                        <span class="block text-2xl font-black text-purple-700" id="teamDiff">0</span>
+                        <span class="text-[10px] uppercase font-bold text-slate-500">Diff. Reti (<span id="teamGF">0</span>-<span id="teamGA">0</span>)</span>
+                    </div>
+                </div>
+
+                <!-- ANALISI CASA/TRASFERTA ED ERBA/SINTETICO CON PERCENTUALI -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
+                    <div class="bg-slate-50 p-4 rounded-xl border space-y-3">
+                        <h3 class="font-bold text-xs uppercase text-slate-700 flex items-center justify-between border-b pb-2">
+                            <span><i class="fa-solid fa-house-user text-emerald-600 mr-1"></i> Rendimento Casa vs Trasferta</span>
+                            <span class="text-[10px] text-slate-400 font-normal">% sul totale partite</span>
+                        </h3>
+                        <div class="grid grid-cols-2 gap-3 text-xs">
+                            <div class="bg-white p-3 rounded-lg border shadow-sm space-y-1">
+                                <span class="font-extrabold text-emerald-700 block">CASA (<span id="homeGamesCount">0</span>) - <span id="homeGamesPct">0%</span></span>
+                                <p class="text-slate-600">Punti: <b id="homePts">0</b></p>
+                                <p class="text-slate-600">Gol Fatti: <b id="homeGF" class="text-emerald-600">0</b></p>
+                                <p class="text-slate-600">Gol Subiti: <b id="homeGA" class="text-red-600">0</b></p>
+                            </div>
+                            <div class="bg-white p-3 rounded-lg border shadow-sm space-y-1">
+                                <span class="font-extrabold text-blue-700 block">TRASFERTA (<span id="awayGamesCount">0</span>) - <span id="awayGamesPct">0%</span></span>
+                                <p class="text-slate-600">Punti: <b id="awayPts">0</b></p>
+                                <p class="text-slate-600">Gol Fatti: <b id="awayGF" class="text-emerald-600">0</b></p>
+                                <p class="text-slate-600">Gol Subiti: <b id="awayGA" class="text-red-600">0</b></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 p-4 rounded-xl border space-y-3">
+                        <h3 class="font-bold text-xs uppercase text-slate-700 flex items-center justify-between border-b pb-2">
+                            <span><i class="fa-solid fa-layer-group text-teal-600 mr-1"></i> Rendimento Tipo Terreno</span>
+                            <span class="text-[10px] text-slate-400 font-normal">% sul totale partite</span>
+                        </h3>
+                        <div class="grid grid-cols-2 gap-3 text-xs">
+                            <div class="bg-white p-3 rounded-lg border shadow-sm space-y-1">
+                                <span class="font-extrabold text-teal-700 block">SINTETICO (<span id="synthGamesCount">0</span>) - <span id="synthGamesPct">0%</span></span>
+                                <p class="text-slate-600">Punti: <b id="synthPts">0</b></p>
+                                <p class="text-slate-600">Gol Fatti: <b id="synthGF" class="text-emerald-600">0</b></p>
+                                <p class="text-slate-600">Gol Subiti: <b id="synthGA" class="text-red-600">0</b></p>
+                            </div>
+                            <div class="bg-white p-3 rounded-lg border shadow-sm space-y-1">
+                                <span class="font-extrabold text-green-700 block">ERBA NATURALE (<span id="grassGamesCount">0</span>) - <span id="grassGamesPct">0%</span></span>
+                                <p class="text-slate-600">Punti: <b id="grassPts">0</b></p>
+                                <p class="text-slate-600">Gol Fatti: <b id="grassGF" class="text-emerald-600">0</b></p>
+                                <p class="text-slate-600">Gol Subiti: <b id="grassGA" class="text-red-600">0</b></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SUB-CARDS MEDIE PER PARTITA -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center border-t pt-3">
+                    <div class="bg-slate-50 p-2.5 rounded-lg border">
+                        <span class="block font-bold text-emerald-700 text-sm" id="avgGF">0.0</span>
+                        <span class="text-[10px] text-slate-500 uppercase font-semibold">Media Gol Fatti /p</span>
+                    </div>
+                    <div class="bg-slate-50 p-2.5 rounded-lg border">
+                        <span class="block font-bold text-red-600 text-sm" id="avgGA">0.0</span>
+                        <span class="text-[10px] text-slate-500 uppercase font-semibold">Media Gol Subiti /p</span>
+                    </div>
+                    <div class="bg-slate-50 p-2.5 rounded-lg border">
+                        <span class="block font-bold text-amber-600 text-sm" id="avgYellow">0.0</span>
+                        <span class="text-[10px] text-slate-500 uppercase font-semibold">Media Gialli /p</span>
+                    </div>
+                    <div class="bg-slate-50 p-2.5 rounded-lg border">
+                        <span class="block font-bold text-red-800 text-sm" id="avgRed">0.0</span>
+                        <span class="text-[10px] text-slate-500 uppercase font-semibold">Media Rossi /p</span>
+                    </div>
+                </div>
+
+                <!-- SEZIONE GRAFICI -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+                    <div class="bg-slate-50 p-4 rounded-xl border text-center flex flex-col items-center">
+                        <h3 class="font-bold text-xs uppercase text-slate-600 mb-2">Esito Gare (V / N / P)</h3>
+                        <div class="w-full max-w-[220px] h-[220px]">
+                            <canvas id="chartOutcome"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 p-4 rounded-xl border text-center flex flex-col items-center">
+                        <h3 class="font-bold text-xs uppercase text-slate-600 mb-2">Bilancio Reti</h3>
+                        <div class="w-full h-[220px]">
+                            <canvas id="chartGoals"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 p-4 rounded-xl border text-center flex flex-col items-center">
+                        <h3 class="font-bold text-xs uppercase text-slate-600 mb-2">Cartellini</h3>
+                        <div class="w-full h-[220px]">
+                            <canvas id="chartCards"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                    <div class="bg-slate-50 p-4 rounded-xl border">
+                        <h3 class="font-bold text-sm text-slate-800 mb-3 flex items-center gap-1.5"><i class="fa-solid fa-futbol text-emerald-600"></i> Classifica Marcatori</h3>
+                        <ul id="topScorersList" class="space-y-1.5 text-xs max-h-[220px] overflow-y-auto"></ul>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-xl border">
+                        <h3 class="font-bold text-sm text-slate-800 mb-3 flex items-center gap-1.5"><i class="fa-solid fa-hands-holding-circle text-blue-600"></i> Classifica Assistman</h3>
+                        <ul id="topAssistList" class="space-y-1.5 text-xs max-h-[220px] overflow-y-auto"></ul>
+                    </div>
+                </div>
+
+                <!-- STORICO PARTITE -->
+                <div>
+                    <h3 class="font-bold text-sm text-slate-800 mb-3 flex items-center gap-2"><i class="fa-solid fa-list-check text-amber-500"></i> Elenco Partite Registrate</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead class="bg-slate-100 border-b font-bold text-slate-600 uppercase">
+                                <tr>
+                                    <th class="p-2.5">Data</th>
+                                    <th class="p-2.5">Competizione</th>
+                                    <th class="p-2.5">Avversario</th>
+                                    <th class="p-2.5">Sede / Terreno</th>
+                                    <th class="p-2.5 text-center">Risultato</th>
+                                    <th class="p-2.5 text-center">Esito</th>
+                                    <th class="p-2.5 text-right">Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody id="matchesHistoryTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- B. STATISTICHE INDIVIDUALI GIOCATORI -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-user-check text-blue-600"></i> Statistiche Individuali Giocatori</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead class="bg-slate-100 border-b font-bold text-slate-600 uppercase">
+                            <tr>
+                                <th class="p-2.5">Giocatore</th>
+                                <th class="p-2.5 text-center">Partite</th>
+                                <th class="p-2.5 text-center">Minuti Giocati</th>
+                                <th class="p-2.5 text-center">Gol</th>
+                                <th class="p-2.5 text-center">Assist</th>
+                                <th class="p-2.5 text-center">Gialli</th>
+                                <th class="p-2.5 text-center">Rossi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="individualStatsTable"></tbody>
+                    </table>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- LOGICA JAVASCRIPT -->
+    <script>
+        if (typeof ChartDataLabels !== 'undefined') {
+            Chart.register(ChartDataLabels);
+        }
+
+        let coachProfile = JSON.parse(localStorage.getItem('misterApp_coach')) || {
+            nome: 'Nicola',
+            cognome: 'Cislaghi',
+            team: 'ASD DOGO',
+            season: '2026/2027'
+        };
+
+        let players = JSON.parse(localStorage.getItem('misterApp_players')) || [];
+        let matches = JSON.parse(localStorage.getItem('misterApp_matches')) || [];
+        let partitellaAttendanceState = {};
+
+        const roleOrderMap = { 'POR': 1, 'DC': 2, 'TD': 3, 'TS': 4, 'CC': 5, 'ALA': 6, 'P': 7 };
+
+        const roleCategories = [
+            { key: 'POR', title: 'Portieri', roles: ['POR'], icon: 'fa-hand' },
+            { key: 'DEF', title: 'Difensori (DC, TD, TS)', roles: ['DC', 'TD', 'TS'], icon: 'fa-shield-halved' },
+            { key: 'MID', title: 'Centrocampisti (CC)', roles: ['CC'], icon: 'fa-arrows-split-up-and-left' },
+            { key: 'ATT', title: 'Attaccanti & Esterni (ALA, P)', roles: ['ALA', 'P'], icon: 'fa-bolt' }
+        ];
+
+        let matchRosterState = Array.from({ length: 20 }, (_, i) => ({
+            slot: i + 1, playerId: null, yellowCard: false, redCard: false, substituted: false, subWithPlayerId: null, subMinute: null
+        }));
+
+        let chartOutcomeInstance = null;
+        let chartGoalsInstance = null;
+        let chartCardsInstance = null;
+
+        // PROFILE & ACCOUNT
+        function updateCoachUI() {
+            document.getElementById('navCoachName').innerText = `${coachProfile.nome} ${coachProfile.cognome}`;
+            document.getElementById('navCoachTeam').innerText = `${coachProfile.team} (${coachProfile.season})`;
+            document.getElementById('homeWelcomeTitle').innerText = `Benvenuto Mister ${coachProfile.nome}!`;
+        }
+
+        function openAccountModal() {
+            document.getElementById('coachNome').value = coachProfile.nome || '';
+            document.getElementById('coachCognome').value = coachProfile.cognome || '';
+            document.getElementById('coachTeam').value = coachProfile.team || '';
+            document.getElementById('coachSeason').value = coachProfile.season || '2026/2027';
+            document.getElementById('accountModal').classList.remove('hidden');
+        }
+
+        function closeAccountModal() {
+            document.getElementById('accountModal').classList.add('hidden');
+        }
+
+        document.getElementById('accountForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            coachProfile = {
+                nome: document.getElementById('coachNome').value,
+                cognome: document.getElementById('coachCognome').value,
+                team: document.getElementById('coachTeam').value,
+                season: document.getElementById('coachSeason').value
+            };
+            localStorage.setItem('misterApp_coach', JSON.stringify(coachProfile));
+            updateCoachUI();
+            closeAccountModal();
+        });
+
+        function showSection(secId) {
+            ['home', 'rosa', 'partitella', 'gare', 'stats'].forEach(s => {
+                const elem = document.getElementById('sec-' + s);
+                if(elem) elem.classList.add('hidden');
+            });
+            const target = document.getElementById('sec-' + secId);
+            if(target) target.classList.remove('hidden');
+            renderAll();
+        }
+
+        function calculateAge() {
+            const input = document.getElementById('annoNascita');
+            if(!input) return null;
+            const annoVal = parseInt(input.value);
+            if(!annoVal || isNaN(annoVal)) {
+                document.getElementById('etaDisplay').innerText = '-';
+                return null;
+            }
+            const currentYear = new Date().getFullYear();
+            const age = currentYear - annoVal;
+            document.getElementById('etaDisplay').innerText = age > 0 ? age + " anni" : '-';
+            return age;
+        }
+
+        function addSecondaryRoleInput(selectedRole = '', selectedGrade = 'A') {
+            const container = document.getElementById('secRolesContainer');
+            if(!container) return;
+            const rowId = Date.now() + Math.random().toString(36).substr(2, 4);
+
+            const div = document.createElement('div');
+            div.className = 'flex gap-2 items-center sec-role-row';
+            div.id = 'sec_role_' + rowId;
+
+            div.innerHTML = `
+                <select class="sec-role-select flex-1 p-2 border rounded-lg text-sm bg-white outline-none">
+                    <option value="">Nessuno</option>
+                    <option value="POR" ${selectedRole==='POR'?'selected':''}>Portiere (POR)</option>
+                    <option value="DC" ${selectedRole==='DC'?'selected':''}>Difensore Centrale (DC)</option>
+                    <option value="TD" ${selectedRole==='TD'?'selected':''}>Terzino Destro (TD)</option>
+                    <option value="TS" ${selectedRole==='TS'?'selected':''}>Terzino Sinistro (TS)</option>
+                    <option value="CC" ${selectedRole==='CC'?'selected':''}>Centrocampista (CC)</option>
+                    <option value="ALA" ${selectedRole==='ALA'?'selected':''}>Ala / Esterno (ALA)</option>
+                    <option value="P" ${selectedRole==='P'?'selected':''}>Punta / Attaccante (P)</option>
+                </select>
+                <select class="sec-grade-select w-20 p-2 border rounded-lg text-sm bg-white font-bold text-slate-700">
+                    <option value="A" ${selectedGrade==='A'?'selected':''}>A</option>
+                    <option value="B" ${selectedGrade==='B'?'selected':''}>B</option>
+                    <option value="C" ${selectedGrade==='C'?'selected':''}>C</option>
+                </select>
+                <button type="button" onclick="removeSecondaryRoleInput('${rowId}')" class="text-red-500 hover:text-red-700 p-1"><i class="fa-solid fa-xmark"></i></button>
+            `;
+            container.appendChild(div);
+        }
+
+        function removeSecondaryRoleInput(rowId) {
+            const elem = document.getElementById('sec_role_' + rowId);
+            if(elem) elem.remove();
+        }
+
+        function getSecondaryRolesData() {
+            const secRoles = [];
+            document.querySelectorAll('.sec-role-row').forEach(row => {
+                const roleSel = row.querySelector('.sec-role-select');
+                const gradeSel = row.querySelector('.sec-grade-select');
+                if(roleSel && roleSel.value) {
+                    secRoles.push({ role: roleSel.value, grade: gradeSel ? gradeSel.value : 'A' });
+                }
+            });
+            return secRoles;
+        }
+
+        let currentPhotoBase64 = '';
+        const fotoInputElem = document.getElementById('fotoInput');
+        if(fotoInputElem) {
+            fotoInputElem.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if(file) {
+                    const reader = new FileReader();
+                    reader.onload = function(evt) { currentPhotoBase64 = evt.target.result; }
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        const playerFormElem = document.getElementById('playerForm');
+        if(playerFormElem) {
+            playerFormElem.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const editingId = document.getElementById('editingPlayerId').value;
+                const ruoloPrimario = document.getElementById('ruoloPrincipale').value;
+                if (!ruoloPrimario) { alert("Seleziona un ruolo principale!"); return; }
+
+                const ruoliSecondari = getSecondaryRolesData();
+                const vel = parseFloat(document.getElementById('vel').value) || 3;
+                const res = parseFloat(document.getElementById('res').value) || 3;
+                const forca = parseFloat(document.getElementById('for').value) || 3;
+                const tec = parseFloat(document.getElementById('tec').value) || 3;
+                const tat = parseFloat(document.getElementById('tat').value) || 3;
+                const att = parseFloat(document.getElementById('att').value) || 3;
+
+                const rating = (Math.round(((vel + res + forca + tec + tat + att) / 6) * 2) / 2).toFixed(1);
+                const annoNascita = parseInt(document.getElementById('annoNascita').value);
+                const eta = calculateAge();
+
+                if (editingId) {
+                    const p = players.find(x => x.id === parseInt(editingId));
+                    if (p) {
+                        p.nome = document.getElementById('nome').value;
+                        p.cognome = document.getElementById('cognome').value;
+                        p.annoNascita = annoNascita;
+                        p.eta = eta;
+                        if (currentPhotoBase64) p.foto = currentPhotoBase64;
+                        p.ruoloPrimario = ruoloPrimario;
+                        p.ruoliSecondari = ruoliSecondari;
+                        p.rating = parseFloat(rating);
+                        p.vel = vel; p.res = res; p.forca = forca; p.tec = tec; p.tat = tat; p.att = att;
+                    }
+                } else {
+                    const player = {
+                        id: Date.now(),
+                        nome: document.getElementById('nome').value,
+                        cognome: document.getElementById('cognome').value,
+                        annoNascita: annoNascita,
+                        eta: eta,
+                        foto: currentPhotoBase64 || 'https://via.placeholder.com/40',
+                        ruoloPrimario: ruoloPrimario,
+                        ruoliSecondari: ruoliSecondari,
+                        rating: parseFloat(rating),
+                        vel: vel, res: res, forca: forca, tec: tec, tat: tat, att: att,
+                        presenze: 0, assenzaMotivo: '', presenteAllenamento: true
+                    };
+                    players.push(player);
+                }
+
+                saveData();
+                resetForm();
+                renderRosa();
+            });
+        }
+
+        function editPlayer(id) {
+            const p = players.find(x => x.id === id);
+            if (!p) return;
+
+            document.getElementById('editingPlayerId').value = p.id;
+            document.getElementById('nome').value = p.nome;
+            document.getElementById('cognome').value = p.cognome;
+            document.getElementById('annoNascita').value = p.annoNascita || '';
+            calculateAge();
+
+            document.getElementById('ruoloPrincipale').value = p.ruoloPrimario || '';
+            document.getElementById('secRolesContainer').innerHTML = '';
+            if(p.ruoliSecondari && p.ruoliSecondari.length > 0) {
+                p.ruoliSecondari.forEach(sr => addSecondaryRoleInput(sr.role, sr.grade));
+            }
+
+            document.getElementById('vel').value = p.vel || 3; document.getElementById('vVel').innerText = p.vel || 3;
+            document.getElementById('res').value = p.res || 3; document.getElementById('vRes').innerText = p.res || 3;
+            document.getElementById('for').value = p.forca || 3; document.getElementById('vFor').innerText = p.forca || 3;
+            document.getElementById('tec').value = p.tec || 3; document.getElementById('vTec').innerText = p.tec || 3;
+            document.getElementById('tat').value = p.tat || 3; document.getElementById('vTat').innerText = p.tat || 3;
+            document.getElementById('att').value = p.att || 3; document.getElementById('vAtt').innerText = p.att || 3;
+
+            document.getElementById('formTitle').innerHTML = '<i class="fa-solid fa-user-pen text-amber-500"></i> Modifica Giocatore';
+            document.getElementById('btnSubmitPlayer').innerText = 'Aggiorna Giocatore';
+            document.getElementById('btnSubmitPlayer').className = 'w-full bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 rounded-lg text-sm transition';
+            document.getElementById('btnCancelEdit').classList.remove('hidden');
+
+            currentPhotoBase64 = p.foto;
+        }
+
+        function resetForm() {
+            const form = document.getElementById('playerForm');
+            if(form) form.reset();
+            document.getElementById('editingPlayerId').value = '';
+            document.getElementById('etaDisplay').innerText = '-';
+            document.getElementById('secRolesContainer').innerHTML = '';
+            currentPhotoBase64 = '';
+
+            document.getElementById('vVel').innerText = '3'; document.getElementById('vRes').innerText = '3';
+            document.getElementById('vFor').innerText = '3'; document.getElementById('vTec').innerText = '3';
+            document.getElementById('vTat').innerText = '3'; document.getElementById('vAtt').innerText = '3';
+
+            document.getElementById('formTitle').innerHTML = '<i class="fa-solid fa-user-plus text-emerald-600"></i> Nuovo Giocatore';
+            document.getElementById('btnSubmitPlayer').innerText = '+ Salva Giocatore';
+            document.getElementById('btnSubmitPlayer').className = 'w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 rounded-lg text-sm transition';
+            document.getElementById('btnCancelEdit').classList.add('hidden');
+        }
+
+        function renderRosa() {
+            const tbody = document.getElementById('rosaTable');
+            if(!tbody) return;
+            tbody.innerHTML = '';
+            document.getElementById('rosaCount').innerText = `${players.length} Giocatori`;
+
+            const sortedPlayers = [...players].sort((a, b) => {
+                const orderA = roleOrderMap[a.ruoloPrimario] || 99;
+                const orderB = roleOrderMap[b.ruoloPrimario] || 99;
+                if (orderA !== orderB) return orderA - orderB;
+                if (b.rating !== a.rating) return b.rating - a.rating;
+                return a.cognome.localeCompare(b.cognome);
+            });
+
+            let totalAge = 0, validAgeCount = 0;
+
+            sortedPlayers.forEach((p, index) => {
+                let rolesDisplay = `<span class="bg-emerald-600 text-white font-bold px-2 py-0.5 rounded text-xs inline-block">${p.ruoloPrimario}</span>`;
+                let secRolesList = p.ruoliSecondari ? p.ruoliSecondari.map(sr => sr.role.toLowerCase()) : [];
+                if (secRolesList.length > 0) rolesDisplay += ` <span class="text-xs text-slate-500 font-semibold">(${secRolesList.join(', ')})</span>`;
+
+                const currentYear = new Date().getFullYear();
+                const calculatedAge = p.eta || (p.annoNascita ? (currentYear - p.annoNascita) : null);
+                if(calculatedAge) { totalAge += calculatedAge; validAgeCount++; }
+
+                const ageText = calculatedAge ? `${calculatedAge} anni` : '-';
+                const rowBg = (index % 2 === 0) ? 'bg-white' : 'bg-slate-50';
+
+                const tr = document.createElement('tr');
+                tr.className = `${rowBg} border-b border-slate-100 hover:bg-amber-50/50 transition`;
+                tr.innerHTML = `
+                    <td class="p-3"><img src="${p.foto}" class="w-9 h-9 rounded-full object-cover border shadow-sm"></td>
+                    <td class="p-3 font-bold text-slate-800">${p.nome} ${p.cognome}</td>
+                    <td class="p-3 text-xs font-semibold text-slate-700">${ageText}</td>
+                    <td class="p-3">${rolesDisplay}</td>
+                    <td class="p-3 font-bold text-amber-500">${p.rating} ★</td>
+                    <td class="p-3 text-right space-x-2">
+                        <button onclick="editPlayer(${p.id})" class="text-amber-500 hover:text-amber-700 transition"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button onclick="deletePlayer(${p.id})" class="text-red-500 hover:text-red-700 transition"><i class="fa-solid fa-trash-can"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            const avgAge = validAgeCount > 0 ? (totalAge / validAgeCount).toFixed(1) : '-';
+            document.getElementById('avgAgeBadge').innerText = `Età Media: ${avgAge} ${avgAge !== '-' ? 'anni' : ''}`;
+        }
+
+        function deletePlayer(id) {
+            if (confirm("Sei sicuro di voler eliminare questo giocatore?")) {
+                players = players.filter(p => p.id !== id);
+                saveData();
+                renderAll();
+            }
+        }
+
+        // --- PARTITELLA PER CATEGORIE ---
+
+        function togglePartitellaPresence(playerId) {
+            partitellaAttendanceState[playerId] = !partitellaAttendanceState[playerId];
+            renderPartitellaCategoryList();
+        }
+
+        function toggleSelectAllPartitella() {
+            const allSelected = players.every(p => partitellaAttendanceState[p.id] !== false);
+            players.forEach(p => partitellaAttendanceState[p.id] = !allSelected);
+            renderPartitellaCategoryList();
+        }
+
+        function renderPartitellaCategoryList() {
+            const container = document.getElementById('partitellaCategoryList');
+            if(!container) return;
+            container.innerHTML = '';
+
+            const allSelected = players.length > 0 && players.every(p => partitellaAttendanceState[p.id] !== false);
+            const btnAll = document.getElementById('btnSelectAllPartitella');
+            if(btnAll) btnAll.innerText = allSelected ? 'Deseleziona Tutti' : 'Seleziona Tutti';
+
+            roleCategories.forEach(cat => {
+                const catPlayers = players.filter(p => cat.roles.includes(p.ruoloPrimario))
+                    .sort((a,b) => (roleOrderMap[a.ruoloPrimario]||99) - (roleOrderMap[b.ruoloPrimario]||99) || a.cognome.localeCompare(b.cognome));
+
+                if (catPlayers.length > 0) {
+                    const catDiv = document.createElement('div');
+                    catDiv.className = 'border rounded-xl bg-slate-50 overflow-hidden';
+
+                    let rowsHTML = '';
+                    catPlayers.forEach((p, idx) => {
+                        const isChecked = partitellaAttendanceState[p.id] !== false;
+                        rowsHTML += `
+                            <div class="flex justify-between items-center p-2.5 ${idx > 0 ? 'border-t border-slate-200/60' : ''} bg-white hover:bg-emerald-50/30 transition cursor-pointer" onclick="togglePartitellaPresence(${p.id})">
+                                <div class="flex items-center gap-2">
+                                    <input type="checkbox" ${isChecked ? 'checked' : ''} class="accent-emerald-600 w-4 h-4 cursor-pointer" onclick="event.stopPropagation(); togglePartitellaPresence(${p.id})">
+                                    <span class="font-bold text-xs text-slate-800">${p.nome} ${p.cognome}</span>
+                                    <span class="text-[10px] bg-slate-100 text-slate-700 font-bold px-1.5 py-0.5 rounded border">${p.ruoloPrimario}</span>
+                                </div>
+                                <span class="font-extrabold text-xs text-amber-500">${p.rating} ★</span>
+                            </div>
+                        `;
+                    });
+
+                    catDiv.innerHTML = `
+                        <div class="bg-slate-200/80 p-2 px-3 font-bold text-xs text-slate-800 flex items-center justify-between border-b border-slate-300">
+                            <span><i class="fa-solid ${cat.icon} mr-1.5 text-slate-600"></i> ${cat.title}</span>
+                            <span class="bg-slate-300 px-2 py-0.5 rounded-full text-[10px]">${catPlayers.length}</span>
+                        </div>
+                        <div>${rowsHTML}</div>
+                    `;
+                    container.appendChild(catDiv);
+                }
+            });
+        }
+
+        function generateTeams() {
+            const active = players.filter(p => partitellaAttendanceState[p.id] !== false);
+
+            if (active.length < 2) { alert("Servono almeno 2 giocatori spuntati per generare le partitelle!"); return; }
+
+            const teamA = [], teamB = [];
+            let sumA = 0, sumB = 0;
+
+            const groupedByRole = {};
+            Object.keys(roleOrderMap).forEach(role => {
+                groupedByRole[role] = active.filter(p => p.ruoloPrimario === role).sort((a,b) => b.rating - a.rating);
+            });
+
+            Object.keys(roleOrderMap).forEach(role => {
+                groupedByRole[role].forEach(p => {
+                    if (sumA <= sumB) { teamA.push(p); sumA += p.rating; }
+                    else { teamB.push(p); sumB += p.rating; }
+                });
+            });
+
+            const sortTactical = (arr) => arr.sort((a,b) => (roleOrderMap[a.ruoloPrimario]||99) - (roleOrderMap[b.ruoloPrimario]||99));
+            renderTeamList('partitellaA', sortTactical(teamA));
+            renderTeamList('partitellaB', sortTactical(teamB));
+
+            document.getElementById('ratingTeamA').innerText = `Media: ${(sumA / teamA.length || 0).toFixed(1)} ★ (${teamA.length})`;
+            document.getElementById('ratingTeamB').innerText = `Media: ${(sumB / teamB.length || 0).toFixed(1)} ★ (${teamB.length})`;
+        }
+
+        function renderTeamList(elementId, team) {
+            const container = document.getElementById(elementId);
+            if(!container) return;
+            container.innerHTML = '';
+            team.forEach(p => {
+                const li = document.createElement('li');
+                li.className = 'flex justify-between items-center py-1 border-b border-slate-200/60';
+                li.innerHTML = `<span><b>${p.nome} ${p.cognome}</b> <span class="text-[10px] bg-slate-200 px-1.5 rounded">${p.ruoloPrimario}</span></span><b class="text-amber-500">${p.rating} ★</b>`;
+                container.appendChild(li);
+            });
+        }
+
+        // --- DISTINTA GARE 1-20 & REFERTO PARTITA ---
+
+        function generatePlayerSelectOptions(selectedId = null, currentSlotIndex = 0) {
+            const usedIds = new Set();
+            matchRosterState.forEach((st, idx) => {
+                if (idx !== currentSlotIndex && st.playerId) usedIds.add(st.playerId);
+            });
+
+            const sorted = [...players].sort((a,b) => (roleOrderMap[a.ruoloPrimario]||99) - (roleOrderMap[b.ruoloPrimario]||99) || a.cognome.localeCompare(b.cognome));
+            let html = `<option value="">-- Seleziona Giocatore --</option>`;
+
+            sorted.forEach(p => {
+                if (!usedIds.has(p.id) || p.id === selectedId) {
+                    html += `<option value="${p.id}" ${p.id === selectedId ? 'selected' : ''}>${p.cognome} ${p.nome} (${p.ruoloPrimario} - ${p.rating}★)</option>`;
+                }
+            });
+            return html;
+        }
+
+        function calculateSlotPlayedMinutes(state) {
+            if (!state.playerId) return 0;
+            const isStarter = state.slot <= 11;
+
+            if (isStarter) {
+                if (state.substituted && state.subMinute !== null && !isNaN(state.subMinute)) {
+                    return Math.min(90, Math.max(0, parseInt(state.subMinute)));
+                }
+                return 90;
+            } else {
+                const starterSub = matchRosterState.find(st => st.substituted && parseInt(st.subWithPlayerId) === state.playerId);
+                if (starterSub && starterSub.subMinute !== null && !isNaN(starterSub.subMinute)) {
+                    const enterMin = parseInt(starterSub.subMinute);
+                    return Math.min(90, Math.max(0, 90 - enterMin));
+                }
+                return 0;
+            }
+        }
+
+        function renderMatchRosterTable() {
+            const tbody = document.getElementById('matchListTable');
+            if(!tbody) return;
+            tbody.innerHTML = '';
+
+            let startersSum = 0, startersCount = 0;
+            let benchSum = 0, benchCount = 0;
+
+            const usedSubPlayerIds = new Set();
+            matchRosterState.forEach(st => {
+                if (st.substituted && st.subWithPlayerId) usedSubPlayerIds.add(st.subWithPlayerId);
+            });
+
+            matchRosterState.forEach((st, idx) => {
+                const isStarter = st.slot <= 11;
+
+                if (st.playerId) {
+                    const p = players.find(x => x.id === st.playerId);
+                    if (p) {
+                        if (isStarter) { startersSum += p.rating; startersCount++; }
+                        else { benchSum += p.rating; benchCount++; }
+                    }
+                }
+
+                let benchSubOptions = `<option value="">Sostituito con...</option>`;
+                matchRosterState.forEach(stOther => {
+                    if (stOther.slot >= 12 && stOther.playerId) {
+                        const isCurrentSelection = (st.subWithPlayerId === stOther.playerId);
+                        if (!usedSubPlayerIds.has(stOther.playerId) || isCurrentSelection) {
+                            const pOther = players.find(x => x.id === stOther.playerId);
+                            if (pOther) {
+                                benchSubOptions += `<option value="${pOther.id}" ${isCurrentSelection ? 'selected' : ''}>#${stOther.slot} ${pOther.cognome} ${pOther.nome}</option>`;
+                            }
+                        }
+                    }
+                });
+
+                const minutesPlayed = calculateSlotPlayedMinutes(st);
+                const tr = document.createElement('tr');
+                const rowBg = isStarter ? (idx % 2 === 0 ? 'bg-emerald-50/30' : 'bg-white') : (idx % 2 === 0 ? 'bg-amber-50/20' : 'bg-white');
+
+                tr.className = `${rowBg} border-b border-slate-200/80 hover:bg-slate-100/80 transition`;
+                tr.innerHTML = `
+                    <td class="p-2 font-bold ${isStarter ? 'text-emerald-700' : 'text-amber-700'}">${st.slot}</td>
+                    <td class="p-2">
+                        <select onchange="updateRosterPlayer(${idx}, this.value)" class="w-full p-1.5 border rounded-lg text-xs bg-white font-semibold outline-none focus:ring-1 focus:ring-emerald-500">
+                            ${generatePlayerSelectOptions(st.playerId, idx)}
+                        </select>
+                    </td>
+                    <td class="p-2 text-center">
+                        <input type="checkbox" ${st.yellowCard ? 'checked' : ''} onchange="updateRosterCard(${idx}, 'yellowCard', this.checked)" class="accent-amber-500 w-4 h-4 cursor-pointer" ${!st.playerId ? 'disabled' : ''}>
+                    </td>
+                    <td class="p-2 text-center">
+                        <input type="checkbox" ${st.redCard ? 'checked' : ''} onchange="updateRosterCard(${idx}, 'redCard', this.checked)" class="accent-red-600 w-4 h-4 cursor-pointer" ${!st.playerId ? 'disabled' : ''}>
+                    </td>
+                    <td class="p-2">
+                        <div class="flex items-center gap-1">
+                            <label class="flex items-center text-[10px] font-bold text-slate-600 cursor-pointer">
+                                <input type="checkbox" ${st.substituted ? 'checked' : ''} onchange="toggleRosterSub(${idx}, this.checked)" class="accent-blue-600 mr-1" ${!st.playerId ? 'disabled' : ''}>
+                                Out
+                            </label>
+                            <div class="${st.substituted ? 'flex' : 'hidden'} gap-1 items-center flex-1">
+                                <select onchange="updateRosterSubPlayer(${idx}, this.value)" class="p-1 border rounded text-[10px] bg-white flex-1 outline-none">
+                                    ${benchSubOptions}
+                                </select>
+                                <input type="number" min="1" max="90" placeholder="Min" value="${st.subMinute || ''}" oninput="updateRosterSubMin(${idx}, this.value)" class="w-12 p-1 border rounded text-[10px] text-center">
+                            </div>
+                        </div>
+                    </td>
+                    <td class="p-2 text-right font-extrabold text-xs text-slate-700">
+                        ${st.playerId ? `${minutesPlayed}'` : '-'}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('startersAvgBadge').innerText = `Media Titolari (${startersCount}/11): ${startersCount > 0 ? (startersSum / startersCount).toFixed(1) : '0'} ★`;
+            document.getElementById('benchAvgBadge').innerText = `Media Panchina (${benchCount}/9): ${benchCount > 0 ? (benchSum / benchCount).toFixed(1) : '0'} ★`;
+        }
+
+        function updateRosterPlayer(slotIndex, val) {
+            matchRosterState[slotIndex].playerId = val ? parseInt(val) : null;
+            renderMatchRosterTable();
+            renderGoalDetailsInputs();
+        }
+
+        function updateRosterCard(slotIndex, cardType, checked) {
+            matchRosterState[slotIndex][cardType] = checked;
+        }
+
+        function toggleRosterSub(slotIndex, checked) {
+            matchRosterState[slotIndex].substituted = checked;
+            if (!checked) {
+                matchRosterState[slotIndex].subWithPlayerId = null;
+                matchRosterState[slotIndex].subMinute = null;
+            }
+            renderMatchRosterTable();
+        }
+
+        function updateRosterSubPlayer(slotIndex, val) {
+            matchRosterState[slotIndex].subWithPlayerId = val ? parseInt(val) : null;
+            renderMatchRosterTable();
+        }
+
+        function updateRosterSubMin(slotIndex, val) {
+            matchRosterState[slotIndex].subMinute = val ? parseInt(val) : null;
+            renderMatchRosterTable();
+        }
+
+        function renderGoalDetailsInputs() {
+            const goalsInput = document.getElementById('goalsUs');
+            const goalsUs = goalsInput ? parseInt(goalsInput.value) || 0 : 0;
+            const container = document.getElementById('goalsDetailContainer');
+            const listInputs = document.getElementById('goalsListInputs');
+
+            if(!container || !listInputs) return;
+
+            listInputs.innerHTML = '';
+            if (goalsUs <= 0) {
+                container.classList.add('hidden');
+                return;
+            }
+
+            container.classList.remove('hidden');
+
+            const activeMatchPlayers = [];
+            matchRosterState.forEach(st => {
+                if(st.playerId) {
+                    const p = players.find(x => x.id === st.playerId);
+                    if(p) activeMatchPlayers.push(p);
+                }
+            });
+
+            activeMatchPlayers.sort((a,b) => (roleOrderMap[a.ruoloPrimario]||99) - (roleOrderMap[b.ruoloPrimario]||99) || a.cognome.localeCompare(b.cognome));
+
+            let playerOptions = `<option value="">-- Seleziona Giocatore --</option>`;
+            activeMatchPlayers.forEach(p => {
+                playerOptions += `<option value="${p.id}">${p.cognome} ${p.nome} (${p.ruoloPrimario})</option>`;
+            });
+
+            for (let i = 1; i <= goalsUs; i++) {
+                const goalDiv = document.createElement('div');
+                goalDiv.className = 'bg-slate-50 p-2 rounded-lg border border-slate-200 space-y-1.5 text-xs';
+                goalDiv.innerHTML = `
+                    <div class="flex justify-between items-center font-bold text-slate-700">
+                        <span><i class="fa-solid fa-futbol text-emerald-600 mr-1"></i> Gol #${i}</span>
+                        <label class="font-normal text-[11px] cursor-pointer">
+                            <input type="checkbox" onchange="toggleAutogol(this, ${i})" class="accent-red-500 mr-1"> Autogol
+                        </label>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[10px] text-slate-500">Marcatore</label>
+                            <select id="scorer_${i}" required class="w-full p-1.5 border rounded bg-white font-medium outline-none">
+                                ${playerOptions}
+                            </select>
+                        </div>
+                        <div id="assistWrapper_${i}">
+                            <label class="block text-[10px] text-slate-500">Assistman</label>
+                            <select id="assist_${i}" class="w-full p-1.5 border rounded bg-white font-medium outline-none">
+                                ${playerOptions}
+                            </select>
+                        </div>
+                    </div>
+                `;
+                listInputs.appendChild(goalDiv);
+            }
+        }
+
+        function toggleAutogol(checkbox, goalIndex) {
+            const assistWrapper = document.getElementById(`assistWrapper_${goalIndex}`);
+            const assistSelect = document.getElementById(`assist_${goalIndex}`);
+
+            if (checkbox.checked) {
+                if(assistWrapper) assistWrapper.classList.add('opacity-40', 'pointer-events-none');
+                if(assistSelect) assistSelect.value = '';
+            } else {
+                if(assistWrapper) assistWrapper.classList.remove('opacity-40', 'pointer-events-none');
+            }
+        }
+
+        const matchFormElem = document.getElementById('matchForm');
+        if(matchFormElem) {
+            matchFormElem.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const editingMatchId = document.getElementById('editingMatchId').value;
+                const goalsUs = parseInt(document.getElementById('goalsUs').value) || 0;
+                const goalsThem = parseInt(document.getElementById('goalsThem').value) || 0;
+
+                const goalsData = [];
+                for (let i = 1; i <= goalsUs; i++) {
+                    const scorerElem = document.getElementById(`scorer_${i}`);
+                    const assistElem = document.getElementById(`assist_${i}`);
+                    const scorerId = scorerElem ? parseInt(scorerElem.value) : null;
+                    const assistId = assistElem ? parseInt(assistElem.value) : null;
+                    goalsData.push({ scorerId: scorerId || null, assistId: assistId || null });
+                }
+
+                const matchObject = {
+                    id: editingMatchId ? parseInt(editingMatchId) : Date.now(),
+                    date: document.getElementById('matchDate').value,
+                    opponent: document.getElementById('matchOpponent').value,
+                    type: document.getElementById('matchType').value,
+                    venue: document.getElementById('matchVenue').value || 'Casa',
+                    surface: document.getElementById('matchSurface').value || 'Sintetico',
+                    goalsUs: goalsUs,
+                    goalsThem: goalsThem,
+                    goalsDetails: goalsData,
+                    roster: JSON.parse(JSON.stringify(matchRosterState))
+                };
+
+                if (editingMatchId) {
+                    const idx = matches.findIndex(m => m.id === parseInt(editingMatchId));
+                    if (idx !== -1) matches[idx] = matchObject;
+                } else {
+                    matches.push(matchObject);
+                }
+
+                saveData();
+                alert("Partita salvata con successo!");
+                resetMatchForm();
+                renderAll();
+            });
+        }
+
+        function resetMatchForm() {
+            const form = document.getElementById('matchForm');
+            if(form) form.reset();
+            document.getElementById('editingMatchId').value = '';
+            document.getElementById('matchFormTitle').innerHTML = '<i class="fa-solid fa-trophy text-amber-500"></i> Compila referto partita';
+            document.getElementById('btnSubmitMatch').innerText = '+ Salva Partita e Aggiorna Stats';
+            document.getElementById('btnCancelMatchEdit').classList.add('hidden');
+
+            matchRosterState = Array.from({ length: 20 }, (_, i) => ({
+                slot: i + 1, playerId: null, yellowCard: false, redCard: false, substituted: false, subWithPlayerId: null, subMinute: null
+            }));
+
+            renderGoalDetailsInputs();
+            renderMatchRosterTable();
+        }
+
+        function editMatch(matchId) {
+            const m = matches.find(x => x.id === matchId);
+            if (!m) return;
+
+            showSection('gare');
+            document.getElementById('editingMatchId').value = m.id;
+            document.getElementById('matchDate').value = m.date;
+            document.getElementById('matchOpponent').value = m.opponent;
+            document.getElementById('matchType').value = m.type;
+            document.getElementById('matchVenue').value = m.venue || 'Casa';
+            document.getElementById('matchSurface').value = m.surface || 'Sintetico';
+            document.getElementById('goalsUs').value = m.goalsUs;
+            document.getElementById('goalsThem').value = m.goalsThem;
+
+            matchRosterState = JSON.parse(JSON.stringify(m.roster));
+
+            document.getElementById('matchFormTitle').innerHTML = '<i class="fa-solid fa-pen-to-square text-amber-500"></i> Modifica Referto Partita';
+            document.getElementById('btnSubmitMatch').innerText = 'Aggiorna Partita';
+            document.getElementById('btnCancelMatchEdit').classList.remove('hidden');
+
+            renderMatchRosterTable();
+            renderGoalDetailsInputs();
+
+            if (m.goalsDetails) {
+                m.goalsDetails.forEach((g, idx) => {
+                    const i = idx + 1;
+                    if (document.getElementById(`scorer_${i}`)) document.getElementById(`scorer_${i}`).value = g.scorerId || '';
+                    if (document.getElementById(`assist_${i}`)) document.getElementById(`assist_${i}`).value = g.assistId || '';
+                });
+            }
+        }
+
+        function deleteMatch(matchId) {
+            if (confirm("Sei sicuro di voler eliminare questa partita?")) {
+                matches = matches.filter(m => m.id !== matchId);
+                saveData();
+                renderAll();
+            }
+        }
+
+        // --- STATISTICHE SQUADRA, CASA/TRASFERTA, TERRENO E INDIVIDUALI ---
+
+        function renderStats() {
+            const statsFilterElem = document.getElementById('statsFilterComp');
+            const filterComp = statsFilterElem ? statsFilterElem.value : 'TOTALE';
+            const filteredMatches = matches.filter(m => filterComp === 'TOTALE' || m.type === filterComp);
+
+            let totalPts = 0, wins = 0, draws = 0, losses = 0, gf = 0, ga = 0;
+            let totalYellow = 0, totalRed = 0;
+            const playedCount = filteredMatches.length;
+
+            let homeGames = 0, homePts = 0, homeGF = 0, homeGA = 0;
+            let awayGames = 0, awayPts = 0, awayGF = 0, awayGA = 0;
+
+            let synthGames = 0, synthPts = 0, synthGF = 0, synthGA = 0;
+            let grassGames = 0, grassPts = 0, grassGF = 0, grassGA = 0;
+
+            const playerStatsMap = {};
+            players.forEach(p => {
+                playerStatsMap[p.id] = { id: p.id, name: `${p.nome} ${p.cognome}`, role: p.ruoloPrimario, matchesCount: 0, mins: 0, goals: 0, assists: 0, yellow: 0, red: 0 };
+            });
+
+            filteredMatches.forEach(m => {
+                gf += m.goalsUs;
+                ga += m.goalsThem;
+
+                let ptsCurrent = 0;
+                if (m.goalsUs > m.goalsThem) { wins++; totalPts += 3; ptsCurrent = 3; }
+                else if (m.goalsUs === m.goalsThem) { draws++; totalPts += 1; ptsCurrent = 1; }
+                else { losses++; }
+
+                if (m.venue === 'Trasferta') {
+                    awayGames++;
+                    awayPts += ptsCurrent;
+                    awayGF += m.goalsUs;
+                    awayGA += m.goalsThem;
+                } else {
+                    homeGames++;
+                    homePts += ptsCurrent;
+                    homeGF += m.goalsUs;
+                    homeGA += m.goalsThem;
+                }
+
+                if (m.surface === 'Erba Naturale') {
+                    grassGames++;
+                    grassPts += ptsCurrent;
+                    grassGF += m.goalsUs;
+                    grassGA += m.goalsThem;
+                } else {
+                    synthGames++;
+                    synthPts += ptsCurrent;
+                    synthGF += m.goalsUs;
+                    synthGA += m.goalsThem;
+                }
+
+                if (m.roster) {
+                    m.roster.forEach(st => {
+                        if (st.playerId && playerStatsMap[st.playerId]) {
+                            const playedMins = calculateSlotPlayedMinutes(st);
+                            if (playedMins > 0) {
+                                playerStatsMap[st.playerId].matchesCount += 1;
+                                playerStatsMap[st.playerId].mins += playedMins;
+                            }
+                            if (st.yellowCard) { playerStatsMap[st.playerId].yellow += 1; totalYellow++; }
+                            if (st.redCard) { playerStatsMap[st.playerId].red += 1; totalRed++; }
+                        }
+                    });
+                }
+
+                if (m.goalsDetails) {
+                    m.goalsDetails.forEach(g => {
+                        if (g.scorerId && playerStatsMap[g.scorerId]) playerStatsMap[g.scorerId].goals += 1;
+                        if (g.assistId && playerStatsMap[g.assistId]) playerStatsMap[g.assistId].assists += 1;
+                    });
+                }
+            });
+
+            const avgPtsVal = playedCount > 0 ? (totalPts / playedCount).toFixed(2) : '0.0';
+            const avgGFVal = playedCount > 0 ? (gf / playedCount).toFixed(2) : '0.0';
+            const avgGAVal = playedCount > 0 ? (ga / playedCount).toFixed(2) : '0.0';
+            const avgYellowVal = playedCount > 0 ? (totalYellow / playedCount).toFixed(2) : '0.0';
+            const avgRedVal = playedCount > 0 ? (totalRed / playedCount).toFixed(2) : '0.0';
+
+            document.getElementById('teamPts').innerText = totalPts;
+            document.getElementById('avgPts').innerText = avgPtsVal;
+            document.getElementById('teamPlayed').innerText = playedCount;
+            document.getElementById('teamWins').innerText = wins;
+            document.getElementById('teamWinsPct').innerText = playedCount > 0 ? `${((wins / playedCount) * 100).toFixed(0)}%` : '0%';
+            document.getElementById('teamDraws').innerText = draws;
+            document.getElementById('teamDrawsPct').innerText = playedCount > 0 ? `${((draws / playedCount) * 100).toFixed(0)}%` : '0%';
+            document.getElementById('teamLosses').innerText = losses;
+            document.getElementById('teamLossesPct').innerText = playedCount > 0 ? `${((losses / playedCount) * 100).toFixed(0)}%` : '0%';
+            document.getElementById('teamDiff').innerText = (gf - ga) > 0 ? `+${gf - ga}` : (gf - ga);
+            document.getElementById('teamGF').innerText = gf;
+            document.getElementById('teamGA').innerText = ga;
+
+            document.getElementById('avgGF').innerText = avgGFVal;
+            document.getElementById('avgGA').innerText = avgGAVal;
+            document.getElementById('avgYellow').innerText = avgYellowVal;
+            document.getElementById('avgRed').innerText = avgRedVal;
+
+            document.getElementById('homeGamesCount').innerText = homeGames;
+            document.getElementById('homeGamesPct').innerText = playedCount > 0 ? `${((homeGames / playedCount) * 100).toFixed(0)}%` : '0%';
+            document.getElementById('homePts').innerText = homePts;
+            document.getElementById('homeGF').innerText = homeGF;
+            document.getElementById('homeGA').innerText = homeGA;
+
+            document.getElementById('awayGamesCount').innerText = awayGames;
+            document.getElementById('awayGamesPct').innerText = playedCount > 0 ? `${((awayGames / playedCount) * 100).toFixed(0)}%` : '0%';
+            document.getElementById('awayPts').innerText = awayPts;
+            document.getElementById('awayGF').innerText = awayGF;
+            document.getElementById('awayGA').innerText = awayGA;
+
+            document.getElementById('synthGamesCount').innerText = synthGames;
+            document.getElementById('synthGamesPct').innerText = playedCount > 0 ? `${((synthGames / playedCount) * 100).toFixed(0)}%` : '0%';
+            document.getElementById('synthPts').innerText = synthPts;
+            document.getElementById('synthGF').innerText = synthGF;
+            document.getElementById('synthGA').innerText = synthGA;
+
+            document.getElementById('grassGamesCount').innerText = grassGames;
+            document.getElementById('grassGamesPct').innerText = playedCount > 0 ? `${((grassGames / playedCount) * 100).toFixed(0)}%` : '0%';
+            document.getElementById('grassPts').innerText = grassPts;
+            document.getElementById('grassGF').innerText = grassGF;
+            document.getElementById('grassGA').innerText = grassGA;
+
+            const statsList = Object.values(playerStatsMap);
+
+            const topScorers = [...statsList].filter(s => s.goals > 0).sort((a,b) => b.goals - a.goals);
+            const topAssist = [...statsList].filter(s => s.assists > 0).sort((a,b) => b.assists - a.assists);
+
+            document.getElementById('topScorersList').innerHTML = topScorers.length > 0
+                ? topScorers.map(s => `<li class="flex justify-between border-b pb-1"><span><b>${s.name}</b> (${s.role})</span><b class="text-emerald-600">${s.goals} Gol</b></li>`).join('')
+                : '<li class="text-slate-400 italic">Nessun gol registrato.</li>';
+
+            document.getElementById('topAssistList').innerHTML = topAssist.length > 0
+                ? topAssist.map(s => `<li class="flex justify-between border-b pb-1"><span><b>${s.name}</b> (${s.role})</span><b class="text-blue-600">${s.assists} Assist</b></li>`).join('')
+                : '<li class="text-slate-400 italic">Nessun assist registrato.</li>';
+
+            const commonDataLabelsOptions = {
+                color: '#ffffff',
+                font: { weight: 'bold', size: 12 },
+                formatter: (value) => value > 0 ? value : ''
+            };
+
+            const canvasOutcome = document.getElementById('chartOutcome');
+            if (canvasOutcome) {
+                if (chartOutcomeInstance) chartOutcomeInstance.destroy();
+                chartOutcomeInstance = new Chart(canvasOutcome.getContext('2d'), {
+                    type: 'pie',
+                    data: {
+                        labels: ['Vittorie', 'Pareggi', 'Sconfitte'],
+                        datasets: [{ data: [wins, draws, losses], backgroundColor: ['#10b981', '#f59e0b', '#ef4444'] }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' }, datalabels: { ...commonDataLabelsOptions, color: '#ffffff' } } }
+                });
+            }
+
+            const canvasGoals = document.getElementById('chartGoals');
+            if (canvasGoals) {
+                if (chartGoalsInstance) chartGoalsInstance.destroy();
+                chartGoalsInstance = new Chart(canvasGoals.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['Gol Fatti', 'Gol Subiti'],
+                        datasets: [{ data: [gf, ga], backgroundColor: ['#059669', '#dc2626'] }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            datalabels: { color: '#ffffff', font: { weight: 'bold', size: 13 }, anchor: 'center', align: 'center', formatter: (val) => val > 0 ? val : '0' }
+                        },
+                        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                    }
+                });
+            }
+
+            const canvasCards = document.getElementById('chartCards');
+            if (canvasCards) {
+                if (chartCardsInstance) chartCardsInstance.destroy();
+                chartCardsInstance = new Chart(canvasCards.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['Ammonizioni', 'Espulsioni'],
+                        datasets: [{ data: [totalYellow, totalRed], backgroundColor: ['#eab308', '#b91c1c'] }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            datalabels: { color: '#ffffff', font: { weight: 'bold', size: 13 }, anchor: 'center', align: 'center', formatter: (val) => val > 0 ? val : '0' }
+                        },
+                        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                    }
+                });
+            }
+
+            const matchHistoryTbody = document.getElementById('matchesHistoryTable');
+            if (matchHistoryTbody) {
+                matchHistoryTbody.innerHTML = '';
+                filteredMatches.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach((m, idx) => {
+                    let outcomeBadge = '<span class="bg-red-100 text-red-800 font-bold px-2 py-0.5 rounded">Persa</span>';
+                    if (m.goalsUs > m.goalsThem) outcomeBadge = '<span class="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">Vinta</span>';
+                    else if (m.goalsUs === m.goalsThem) outcomeBadge = '<span class="bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded">Pareggio</span>';
+
+                    const tr = document.createElement('tr');
+                    tr.className = `${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'} border-b`;
+                    tr.innerHTML = `
+                        <td class="p-2.5 font-semibold">${m.date}</td>
+                        <td class="p-2.5"><span class="bg-slate-200 text-slate-800 font-bold px-2 py-0.5 rounded text-[10px]">${m.type}</span></td>
+                        <td class="p-2.5 font-bold text-slate-800">${m.opponent}</td>
+                        <td class="p-2.5"><span class="font-semibold text-slate-600 text-[11px]">${m.venue || 'Casa'} / ${m.surface || 'Sintetico'}</span></td>
+                        <td class="p-2.5 text-center font-bold text-sm">${m.goalsUs} - ${m.goalsThem}</td>
+                        <td class="p-2.5 text-center">${outcomeBadge}</td>
+                        <td class="p-2.5 text-right space-x-2">
+                            <button onclick="editMatch(${m.id})" class="text-amber-500 hover:text-amber-700" title="Modifica"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button onclick="deleteMatch(${m.id})" class="text-red-500 hover:text-red-700" title="Elimina"><i class="fa-solid fa-trash-can"></i></button>
+                        </td>
+                    `;
+                    matchHistoryTbody.appendChild(tr);
+                });
+            }
+
+            const individualTbody = document.getElementById('individualStatsTable');
+            if (individualTbody) {
+                individualTbody.innerHTML = '';
+                const sortedIndividual = [...statsList].sort((a,b) => b.mins - a.mins || b.goals - a.goals);
+
+                sortedIndividual.forEach((s, idx) => {
+                    const tr = document.createElement('tr');
+                    tr.className = `${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'} border-b hover:bg-emerald-50/30 transition`;
+                    tr.innerHTML = `
+                        <td class="p-2.5 font-bold">${s.name} <span class="text-[10px] bg-slate-200 px-1.5 py-0.5 rounded font-bold">${s.role}</span></td>
+                        <td class="p-2.5 text-center font-semibold">${s.matchesCount}</td>
+                        <td class="p-2.5 text-center font-bold text-blue-600">${s.mins}'</td>
+                        <td class="p-2.5 text-center font-bold text-emerald-600">${s.goals}</td>
+                        <td class="p-2.5 text-center font-bold text-purple-600">${s.assists}</td>
+                        <td class="p-2.5 text-center font-semibold text-amber-500">${s.yellow}</td>
+                        <td class="p-2.5 text-center font-semibold text-red-600">${s.red}</td>
+                    `;
+                    individualTbody.appendChild(tr);
+                });
+            }
+        }
+
+        function renderAll() {
+            updateCoachUI();
+            renderRosa();
+            renderPartitellaCategoryList();
+            renderMatchRosterTable();
+            renderStats();
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            renderAll();
+        });
+    </script>
+</body>
+</html>
